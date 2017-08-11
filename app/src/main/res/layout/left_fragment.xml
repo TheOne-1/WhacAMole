@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="10dp"
+        android:textSize="20sp"
+        android:text="Select A Device to Connect"
+        android:background="@color/colorPrimaryDark"
+        android:textColor="#fff"
+        />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#666"
+        android:paddingLeft="10dp"
+        android:textSize="16sp"
+        android:text="Paired Devices"
+        android:textColor="#fff"
+        />
+
+    <ListView
+        android:id="@+id/paired_devices_listview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:stackFromBottom="true"
+        />
+
+
+
+    <LinearLayout
+        android:id="@+id/searching_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/search_device"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:text="Search New Device"
+            />
+
+        <ProgressBar
+            android:id="@+id/searching"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:background="#666"
+            android:visibility="gone"
+            />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/other_device_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#666"
+        android:paddingLeft="10dp"
+        android:text="Other Available Devices"
+        android:textSize="16sp"
+        android:textColor="#fff"
+        android:visibility="gone"
+        />
+
+    <ListView
+        android:id="@+id/available_devices_listview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:stackFromBottom="true"
+        android:visibility="gone"
+        />
+
+
+</LinearLayout>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
