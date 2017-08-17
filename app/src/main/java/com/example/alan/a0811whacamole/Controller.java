@@ -1,5 +1,7 @@
 package com.example.alan.a0811whacamole;
 
+import android.Manifest;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -7,8 +9,16 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.os.Message;
+import android.support.annotation.MainThread;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -26,16 +36,23 @@ import java.util.Set;
  * This Activity lists any paired devices and devices detected in the area
  * after discovery. When a device is chosen by the user, the MAC address
  * of the device is sent back to the parent Activity in the result Intent.
+ * <p>
+ * Note from Tian:
+ * Android 6.0 or higher version needs location permission when using
+ * bluetooth. Location permission needs to be acquired by RunTime Permission.
  */
 
 public class Controller extends AppCompatActivity {
 
     //Tag for Log
-    private static final String TAG = "DeviceListActivity";
+    private static final String TAG = "TAG";
     public static final int REQUEST_ENABLE_BT = 1;
 
     //Return Intent extra
     public static String EXTRA_DEVICE_ADDRESS = "device_address";
+
+    //Name of the connected device
+    private String mConnectedDeviceName = null;
 
     //Member fields
     private BluetoothAdapter mBtAdapter;
@@ -44,19 +61,38 @@ public class Controller extends AppCompatActivity {
     private ArrayAdapter<String> mNewDevicesArrayAdapter;
 
     private ProgressBar progressBar;
-
-    Button scanButton;
+    private BtService mBtService;
+    private Button scanButton;
+    BluetoothDevice device;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_controller);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolBar);
+        setSupportActionBar(toolbar);
+
+
+        //button for scanning other bt device
         scanButton = (Button) findViewById(R.id.search_device);
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                doDiscovery();
-                view.setVisibility(View.GONE);
+                //check and get location permission
+                if (ContextCompat.checkSelfPermission(Controller.this, Manifest.permission
+                        .ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(Controller.this, new String[]
+                            {Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+                    //1 is used for the switch in on RequestPermissionResult
+                } else if (ContextCompat.checkSelfPermission(Controller.this, Manifest.permission
+                        .ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(Controller.this, new String[]
+                            {Manifest.permission.ACCESS_FINE_LOCATION}, 2);
+                } else {
+                    //Only do the discovery when permitted.
+                    doDiscovery();
+                    view.setVisibility(View.GONE);
+                }
             }
         });
 
@@ -90,11 +126,12 @@ public class Controller extends AppCompatActivity {
         // If there are paired devices, add each one to the ArrayAdapter
         if (pairedDevices.size() > 0) {
             for (BluetoothDevice device : pairedDevices) {
-                pairedDevicesArrayAdapter.add(device.getName() + "/n" + device.getAddress());
+                pairedDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
             }
         } else {
             pairedDevicesArrayAdapter.add("No Devices Have Been Paired");
         }
+        mBtService = new BtService(mHandler);
     }
 
     @Override
@@ -105,6 +142,22 @@ public class Controller extends AppCompatActivity {
         if (!mBtAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        // Performing this check in onResume() covers the case in which BT was
+        // not enabled during onStart(), so we were paused to enable it...
+        // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
+        if (mBtService != null) {
+            // Only if the state is STATE_NONE, do we know that we haven't started already
+            if (mBtService.getState() == BtService.STATE_NONE) {
+                // Start the Bluetooth chat services
+                mBtService.start();
+            }
         }
     }
 
@@ -121,6 +174,22 @@ public class Controller extends AppCompatActivity {
         this.unregisterReceiver(mReceiver);
     }
 
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permission, int[] grantResult) {
+        switch (requestCode) {
+            case 1:
+                if (!(grantResult.length > 0 && grantResult[0] == PackageManager.PERMISSION_GRANTED))
+                    Toast.makeText(Controller.this, "Permission denied.", Toast.LENGTH_SHORT).show();
+            case 2:
+                if (grantResult.length > 0 && grantResult[0] == PackageManager.PERMISSION_GRANTED) {
+                    doDiscovery();
+                    findViewById(R.id.search_device).setVisibility(View.GONE);
+                } else {
+                    Toast.makeText(Controller.this, "Permission denied.", Toast.LENGTH_SHORT).show();
+                }
+        }
+    }
 
     private void doDiscovery() {
         Log.d(TAG, "doDiscovery()");
@@ -145,6 +214,34 @@ public class Controller extends AppCompatActivity {
         mBtAdapter.startDiscovery();
     }
 
+    //Updates the status on the right left corner
+    private void setStatus(CharSequence state) {
+        TextView currentState = (TextView) findViewById(R.id.current_state_text);
+        currentState.setText(state);
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_ENABLE_BT:
+                // When the request to enable Bluetooth returns
+                if (resultCode != Activity.RESULT_OK) {
+                    // User did not enable Bluetooth or an error occurred
+                    Log.d(TAG, "BT not enabled");
+                    Toast.makeText(this, "Bluetooth is not enabled. Leaving...",
+                            Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+                break;
+        }
+    }
+
+    private void connectDevice(BluetoothDevice device, boolean secure) {
+        if (secure == Constants.REQUEST_CONNECT_DEVICE_SECURE)
+            mBtService.connect(device, Constants.REQUEST_CONNECT_DEVICE_SECURE);
+        else
+            mBtService.connect(device, Constants.REQUEST_CONNECT_DEVICE_INSECURE);
+    }
+
 
     /**
      * The on-click listener for all devices in the ListViews
@@ -156,17 +253,14 @@ public class Controller extends AppCompatActivity {
             // Cancel discovery because it's costly and we're about to connect
             mBtAdapter.cancelDiscovery();
 
-//            // Get the device MAC address, which is the last 17 chars in the View
-//            String info = ((TextView) v).getText().toString();
-//            String address = info.substring(info.length() - 17);
-//
-//            // Create the result Intent and include the MAC address
-//            Intent intent = new Intent();
-//            intent.putExtra(EXTRA_DEVICE_ADDRESS, address);
-//
-//            // Set result and finish this Activity
-//            setResult(Activity.RESULT_OK, intent);
-//            finish();
+            // Get the device MAC address, which is the last 17 chars in the View
+            String info = ((TextView) v).getText().toString();
+            String address = info.substring(info.length() - 17);
+
+            // Get the BluetoothDevice object
+            device = mBtAdapter.getRemoteDevice(address);
+            // Attempt to connect to the device
+            connectDevice(device, Constants.REQUEST_CONNECT_DEVICE_SECURE);
         }
     };
 
@@ -200,17 +294,36 @@ public class Controller extends AppCompatActivity {
         }
     };
 
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
-            case REQUEST_ENABLE_BT:
-                // When the request to enable Bluetooth returns
-                if (resultCode != Activity.RESULT_OK) {
-                    // User did not enable Bluetooth or an error occurred
-                    Log.d(TAG, "BT not enabled");
-                    Toast.makeText(this, "Bluetooth is not enabled. Leaving...",
-                            Toast.LENGTH_SHORT).show();
-                    finish();
-                } break;
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case Constants.MESSAGE_STATE_CHANGE:
+                    switch (msg.arg1) {
+                        case BtService.STATE_CONNECTED:
+                            /**
+                             * In the connect thread, connected was invoked so that
+                             * mConnectedDeviceName is initialized and can be quoted here.
+                             */
+                            setStatus("Connected to " + mConnectedDeviceName);
+                            break;
+                        case BtService.STATE_CONNECTING:
+                            setStatus("Connecting");
+                            break;
+                        case BtService.STATE_LISTEN:
+                        case BtService.STATE_NONE:
+                            setStatus("Not connected.");
+                            break;
+                    }
+                    break;
+
+                case Constants.MESSAGE_DEVICE_NAME:
+                    // save the connected device's name
+                    mConnectedDeviceName = msg.getData().getString(Constants.DEVICE_NAME);
+                    Toast.makeText(Controller.this, "Connected to "
+                            + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                    break;
+            }
         }
-    }
+    };
 }
