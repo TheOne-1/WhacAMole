@@ -323,7 +323,54 @@ public class Controller extends AppCompatActivity {
                     Toast.makeText(Controller.this, "Connected to "
                             + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     break;
+
+                case Constants.MESSAGE_READ:
+                    byte[] readBuf = (byte[]) msg.obj;
+                    // construct a string from the valid bytes in the buffer
+                    float[] posData = byteToFloat(readBuf);
+                    Toast.makeText(Controller.this,
+                            posData[0] + " " +
+                            posData[1] + " " +
+                            posData[2] + " " +
+                            posData[3] + " " +
+                            posData[4] + " " +
+                            posData[5] + " " +
+                            posData[6] + " " +
+                            posData[7] + " " +
+                            posData[8], Toast.LENGTH_SHORT).show();
+                    break;
+
+                case Constants.MESSAGE_TOAST:
+                    if (null != Controller.this) {
+                        Toast.makeText(Controller.this, msg.getData().getString(Constants.TOAST),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    break;
             }
+        }
+
+
+        private static final int dataSize = 9;      //size of the pose data
+        public float[] byteToFloat(byte[] bArray) {
+            float[] result = new float[dataSize];
+
+            for (int i = 0; i < dataSize; i++) {
+                int fInt = bArray[4 * i + 3] & 0xFF |
+                        (bArray[4 * i + 2] & 0xFF) << 8 |
+                        (bArray[4 * i + 1] & 0xFF) << 16 |
+                        (bArray[4 * i + 0] & 0xFF) << 24;
+                result[i] = Float.intBitsToFloat(fInt);
+            }
+            return result;
         }
     };
 }
+
+
+
+
+
+
+
+
+

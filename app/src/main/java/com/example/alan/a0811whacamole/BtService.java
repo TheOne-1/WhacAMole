@@ -9,6 +9,7 @@ import android.os.Message;
 import android.util.Log;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 
 /**
@@ -30,8 +31,6 @@ public class BtService {
     // Member fields
     private final BluetoothAdapter mAdapter;
     private final Handler mHandler;
-//    private AcceptThread mSecureAcceptThread;
-//    private AcceptThread mInsecureAcceptThread;
     private ConnectThread mConnectThread;
     private ConnectedThread mConnectedThread;
     private int mState;
@@ -81,15 +80,6 @@ public class BtService {
             mConnectedThread = null;
         }
 
-//        // Start the thread to listen on a BluetoothServerSocket
-//        if (mSecureAcceptThread == null) {
-//            mSecureAcceptThread = new AcceptThread(true);
-//            mSecureAcceptThread.start();
-//        }
-//        if (mInsecureAcceptThread == null) {
-//            mInsecureAcceptThread = new AcceptThread(false);
-//            mInsecureAcceptThread.start();
-//        }
         // Update UI title
         updateStateTitle();
     }
@@ -146,16 +136,6 @@ public class BtService {
             mConnectedThread.cancel();
             mConnectedThread = null;
         }
-
-//        // Cancel the accept thread because we only want to connect to one device
-//        if (mSecureAcceptThread != null) {
-//            mSecureAcceptThread.cancel();
-//            mSecureAcceptThread = null;
-//        }
-//        if (mInsecureAcceptThread != null) {
-//            mInsecureAcceptThread.cancel();
-//            mInsecureAcceptThread = null;
-//        }
 
         // Start the thread to manage the connection and perform transmissions
         mConnectedThread = new ConnectedThread(socket, socketType);
@@ -254,67 +234,44 @@ public class BtService {
      */
     private class ConnectedThread extends Thread {
         private final BluetoothSocket mmSocket;
-//        private final InputStream mmInStream;
-//        private final OutputStream mmOutStream;
+        private final InputStream mmInStream;
 
         public ConnectedThread(BluetoothSocket socket, String socketType) {
             Log.d(TAG, "create ConnectedThread: " + socketType);
             mmSocket = socket;
-//            InputStream tmpIn = null;
-//            OutputStream tmpOut = null;
-//
-//            // Get the BluetoothSocket input and output streams
-//            try {
-//                tmpIn = socket.getInputStream();
-//                tmpOut = socket.getOutputStream();
-//            } catch (IOException e) {
-//                Log.e(TAG, "temp sockets not created", e);
-//            }
-//
-//            mmInStream = tmpIn;
-//            mmOutStream = tmpOut;
+            InputStream tmpIn = null;
+
+            // Get the BluetoothSocket input streams
+            try {
+                tmpIn = socket.getInputStream();
+            } catch (IOException e) {
+                Log.e(TAG, "temp sockets not created", e);
+            }
+            mmInStream = tmpIn;
             mState = STATE_CONNECTED;
         }
 
         public void run() {
-            Log.i(TAG, "BEGIN mConnectedThread");
-//            byte[] buffer = new byte[1024];
-//            int bytes;
-//
-//            // Keep listening to the InputStream while connected
-//            while (mState == STATE_CONNECTED) {
-//                try {
-//                    // Read from the InputStream
-//                    bytes = mmInStream.read(buffer);
-//
-//                    // Send the obtained bytes to the UI Activity
-//                    mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer)
-//                            .sendToTarget();
-//                } catch (IOException e) {
-//                    Log.e(TAG, "disconnected", e);
-//                    connectionLost();
-//                    break;
-//                }
-//            }
+            byte[] buffer = new byte[40];			//4Byte * 9 should be enough
+            int bytes;
+
+            // Keep listening to the InputStream while connected
+            while (mState == STATE_CONNECTED) {
+                try {
+                    // Read from the InputStream
+                    bytes = mmInStream.read(buffer);
+
+                    // Send the obtained bytes to the UI Activity
+                    mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer)
+                            .sendToTarget();
+                } catch (IOException e) {
+                    Log.e(TAG, "disconnected", e);
+                    connectionLost();
+                    break;
+                }
+            }
         }
 
-//        /**
-//         * Write to the connected OutStream.
-//         *
-//         * @param buffer The bytes to write
-//         */
-//        public void write(byte[] buffer) {
-//            try {
-//                mmOutStream.write(buffer);
-//
-//                // Share the sent message back to the UI Activity
-//                mHandler.obtainMessage(Constants.MESSAGE_WRITE, -1, -1, buffer)
-//                        .sendToTarget();
-//            } catch (IOException e) {
-//                Log.e(TAG, "Exception during write", e);
-//            }
-//        }
-//
         public void cancel() {
             try {
                 mmSocket.close();
