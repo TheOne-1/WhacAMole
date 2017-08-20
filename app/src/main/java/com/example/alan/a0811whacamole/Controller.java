@@ -1,7 +1,6 @@
 package com.example.alan.a0811whacamole;
 
 import android.Manifest;
-import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -12,9 +11,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
-import android.support.annotation.MainThread;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -24,7 +21,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -63,7 +59,8 @@ public class Controller extends AppCompatActivity {
     private ProgressBar progressBar;
     private BtService mBtService;
     private Button scanButton;
-    BluetoothDevice device;
+    private Button startGameButton;
+    private BluetoothDevice device;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,7 +129,29 @@ public class Controller extends AppCompatActivity {
             pairedDevicesArrayAdapter.add("No Devices Have Been Paired");
         }
         mBtService = new BtService(mHandler);
+
+        Button startGameButton = (Button) findViewById(R.id.start_game_activity_button);
+        startGameButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+//                if (mBtService.getState() == BtService.STATE_CONNECTED) {
+                if (true) {     //############### for the convince of testing
+                    Intent intent = new Intent(Controller.this, StartGame.class);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(Controller.this,
+                            "Connect a device first.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
+
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.menu.toolbar_controller, menu);
+//        return true;
+//    }
+
 
     @Override
     public void onStart() {
@@ -216,7 +235,7 @@ public class Controller extends AppCompatActivity {
 
     //Updates the status on the right left corner
     private void setStatus(CharSequence state) {
-        TextView currentState = (TextView) findViewById(R.id.current_state_text);
+        TextView currentState = (TextView) findViewById(R.id.current_state_text_controller);
         currentState.setText(state);
     }
 
@@ -330,14 +349,14 @@ public class Controller extends AppCompatActivity {
                     float[] posData = byteToFloat(readBuf);
                     Toast.makeText(Controller.this,
                             posData[0] + " " +
-                            posData[1] + " " +
-                            posData[2] + " " +
-                            posData[3] + " " +
-                            posData[4] + " " +
-                            posData[5] + " " +
-                            posData[6] + " " +
-                            posData[7] + " " +
-                            posData[8], Toast.LENGTH_SHORT).show();
+                                    posData[1] + " " +
+                                    posData[2] + " " +
+                                    posData[3] + " " +
+                                    posData[4] + " " +
+                                    posData[5] + " " +
+                                    posData[6] + " " +
+                                    posData[7] + " " +
+                                    posData[8], Toast.LENGTH_SHORT).show();
                     break;
 
                 case Constants.MESSAGE_TOAST:
@@ -351,6 +370,7 @@ public class Controller extends AppCompatActivity {
 
 
         private static final int dataSize = 9;      //size of the pose data
+
         public float[] byteToFloat(byte[] bArray) {
             float[] result = new float[dataSize];
 

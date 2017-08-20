@@ -3,4 +3,9 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="timeSufficient">#55FF55</color>
+    <color name="timeMedimum">#FFFF55</color>
+    <color name="timeUrgent">#FF5555</color>
+    <color name="colorGround">#FFBB00</color>
+    <color name="colorHoles">#885500</color>
 </resources>
