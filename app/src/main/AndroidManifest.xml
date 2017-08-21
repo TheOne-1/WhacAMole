@@ -23,7 +23,16 @@
         </activity>
         <activity
             android:name=".StartGame"
-            android:screenOrientation="landscape"></activity>
+            android:screenOrientation="landscape" />
+
+        <service
+            android:name=".BallService"
+            android:enabled="true"
+            android:exported="true"></service>
+        <service
+            android:name=".TrackService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>

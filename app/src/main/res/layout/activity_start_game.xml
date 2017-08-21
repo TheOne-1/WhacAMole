@@ -40,7 +40,7 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="restart"
+                android:text="reset"
                 />
 
         </LinearLayout>
@@ -68,7 +68,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:layout_marginBottom="40dp" />
+                android:layout_marginBottom="40dp"
+                />
 
             <View
                 android:layout_width="match_parent"
@@ -109,14 +110,14 @@
             >
 
             <ImageView
-                android:id="@+id/hole_1"
+                android:id="@+id/hole_0"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="40dp"
                 android:src="@drawable/rabbit_hole" />
 
             <ImageView
-                android:id="@+id/hole_2"
+                android:id="@+id/hole_1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="40dp"
@@ -124,7 +125,7 @@
                 android:layout_alignParentRight="true" />
 
             <ImageView
-                android:id="@+id/hole_3"
+                android:id="@+id/hole_2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="40dp"
@@ -132,13 +133,21 @@
                 android:layout_alignParentBottom="true"/>
 
             <ImageView
-                android:id="@+id/hole_4"
+                android:id="@+id/hole_3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="40dp"
                 android:src="@drawable/rabbit_hole"
                 android:layout_alignParentRight="true"
                 android:layout_alignParentBottom="true" />
+
+            <ImageView
+                android:id="@+id/ball_image"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ball"
+                android:visibility="invisible"
+                />
 
         </com.example.alan.a0811whacamole.SquareRelativeLayout>
 
