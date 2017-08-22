@@ -80,8 +80,8 @@ public class BallService extends Service {
         //wake up the thread that the ball is in the hole and is catchable
         public void notifyTrialThread() {
             synchronized (catchState) {
-                catchState.setCatchable(true);
-                catchState.notifyAll();
+                catchState.setCatchable(false);
+                catchState.notify();
             }
         }
     }
@@ -90,7 +90,7 @@ public class BallService extends Service {
         private int duration;
         private long startTime;
         //to indicate the current round in the loop
-        private int currentRound = 0;
+        private int currentRound;
         Random rand = new Random();
         //In every movement, the ball starts from the last
         //hole. The first hole is always the hole_0.
@@ -99,13 +99,14 @@ public class BallService extends Service {
         int moveDuration = EASY_MOVE_DURATION;
 //        int waitDuration = EASY_WAIT_DURATION;
         public TrialThread(int duration) {
+            currentRound = 0;
             this.duration = duration;
         }
 
         @Override
         public void run() {
             startTime = System.currentTimeMillis();
-            //control the duration of the game
+            //control the duration of the game############################
             while (System.currentTimeMillis() - startTime < 1000 * duration) {
                 int nextHole = rand.nextInt(4);
                 //To prevent next hole equal to the last hole
@@ -124,7 +125,7 @@ public class BallService extends Service {
                 }
 
                 move(lastHole, nextHole, moveDuration);
-                Message msg = mHandler.obtainMessage(StartGame.MESSAGE_NEXT_HOLE);
+                Message msg = mHandler.obtainMessage(Constants.MESSAGE_NEXT_HOLE);
                 Bundle bundle = new Bundle();
                 bundle.putInt("next_hole", nextHole);
                 msg.setData(bundle);
@@ -132,19 +133,18 @@ public class BallService extends Service {
 
                 synchronized (catchState) {
                     try {
+                        catchState.setCatchable(true);
                         catchState.wait();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
 
-
-
                 lastTwoHole = lastHole;
                 lastHole = nextHole;
                 currentRound++;
             }
-            Message msg = mHandler.obtainMessage(StartGame.MESSAGE_TRIAL_ENDED);
+            Message msg = mHandler.obtainMessage(Constants.MESSAGE_TRIAL_ENDED);
             mHandler.sendMessage(msg);
         }
     }
@@ -181,7 +181,7 @@ public class BallService extends Service {
         SerialAnimation animation = new SerialAnimation(fromX, toX, fromY, toY);
         //duration is given in seconds
         animation.setDuration(1000 * duration);
-        Message msg = mHandler.obtainMessage(StartGame.MESSAGE_BALL_ANIMATION);
+        Message msg = mHandler.obtainMessage(Constants.MESSAGE_BALL_ANIMATION);
         Bundle bundle = new Bundle();
         bundle.putSerializable("animation", animation);
         msg.setData(bundle);

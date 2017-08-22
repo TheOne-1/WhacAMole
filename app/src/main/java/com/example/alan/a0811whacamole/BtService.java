@@ -1,11 +1,16 @@
 package com.example.alan.a0811whacamole;
 
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.io.IOException;
@@ -16,7 +21,7 @@ import java.util.UUID;
  * Created by Alan on 2017/8/11.
  */
 
-public class BtService {
+public class BtService extends Service {
     private static final String TAG = "BluetoothChatService";
     // Name for the SDP record when creating server socket
     private static final String NAME_SECURE = "BluetoothChatSecure";
@@ -28,25 +33,103 @@ public class BtService {
     private static final UUID MY_UUID_INSECURE =
             UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
 
+    // Constants that indicate the current connection state
+    public static final int STATE_NONE = 0;       // we're doing nothing
+    public static final int STATE_CONNECTING = 2; // now initiating an outgoing connection
+    public static final int STATE_CONNECTED = 3;  // now connected to a remote device
+
     // Member fields
-    private final BluetoothAdapter mAdapter;
-    private final Handler mHandler;
+    private BluetoothAdapter mAdapter;
+    private Handler mHandler;
     private ConnectThread mConnectThread;
     private ConnectedThread mConnectedThread;
     private int mState;
     private int mNewState;
+    float[] posData = new float[10];
 
-    // Constants that indicate the current connection state
-    public static final int STATE_NONE = 0;       // we're doing nothing
-    public static final int STATE_LISTEN = 1;     // now listening for incoming connections  可删
-    public static final int STATE_CONNECTING = 2; // now initiating an outgoing connection
-    public static final int STATE_CONNECTED = 3;  // now connected to a remote device
+    public BluetoothBinder mBtBinder = new BluetoothBinder();
 
-    public BtService(Handler handler) {
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mBtBinder;
+    }
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
-        mNewState = mState;
-        mHandler = handler;
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public void onDestroy() {
+
+    }
+
+    public class BluetoothBinder extends Binder {
+        public synchronized void setHandler(Handler handler) {
+            BtService.this.mHandler = handler;
+        }
+
+        public float[] getPosData() {
+            return posData;
+        }
+
+        public int getState() {
+            return mState;
+        }
+
+        public synchronized void start() {
+            Log.d(TAG, "start");
+
+            // Cancel any thread attempting to make a connection
+            if (mConnectThread != null) {
+                mConnectThread.cancel();
+                mConnectThread = null;
+            }
+
+            // Cancel any thread currently running a connection       //#########################
+            if (mConnectedThread != null) {
+                mConnectedThread.cancel();
+                mConnectedThread = null;
+            }
+
+            // Update UI title
+            updateStateTitle();
+        }
+
+
+
+        /**
+         * Start the ConnectThread to initiate a connection to a remote device.
+         *
+         * @param device The BluetoothDevice to connect
+         * @param secure Socket Security type - Secure (true) , Insecure (false)
+         */
+        public synchronized void connect(BluetoothDevice device, boolean secure) {
+            Log.d(TAG, "connect to: " + device);
+
+            // Cancel any thread attempting to make a connection
+            if (mState == STATE_CONNECTING) {
+                if (mConnectThread != null) {
+                    mConnectThread.cancel();
+                    mConnectThread = null;
+                }
+            }
+
+            // Cancel any thread currently running a connection       //#########################
+            if (mConnectedThread != null) {
+                mConnectedThread.cancel();
+                mConnectedThread = null;
+            }
+
+            // Start the thread to connect with the given device
+            mConnectThread = new ConnectThread(device, secure);
+            mConnectThread.start();
+            // Update UI title
+            updateStateTitle();
+        }
     }
 
 
@@ -62,56 +145,6 @@ public class BtService {
     //Return the current connection state.
     public synchronized int getState() {
         return mState;
-    }
-
-
-    public synchronized void start() {
-        Log.d(TAG, "start");
-
-        // Cancel any thread attempting to make a connection
-        if (mConnectThread != null) {
-            mConnectThread.cancel();
-            mConnectThread = null;
-        }
-
-        // Cancel any thread currently running a connection       //#########################
-        if (mConnectedThread != null) {
-            mConnectedThread.cancel();
-            mConnectedThread = null;
-        }
-
-        // Update UI title
-        updateStateTitle();
-    }
-
-    /**
-     * Start the ConnectThread to initiate a connection to a remote device.
-     *
-     * @param device The BluetoothDevice to connect
-     * @param secure Socket Security type - Secure (true) , Insecure (false)
-     */
-    public synchronized void connect(BluetoothDevice device, boolean secure) {
-        Log.d(TAG, "connect to: " + device);
-
-        // Cancel any thread attempting to make a connection
-        if (mState == STATE_CONNECTING) {
-            if (mConnectThread != null) {
-                mConnectThread.cancel();
-                mConnectThread = null;
-            }
-        }
-
-        // Cancel any thread currently running a connection       //#########################
-        if (mConnectedThread != null) {
-            mConnectedThread.cancel();
-            mConnectedThread = null;
-        }
-
-        // Start the thread to connect with the given device
-        mConnectThread = new ConnectThread(device, secure);
-        mConnectThread.start();
-        // Update UI title
-        updateStateTitle();
     }
 
 
@@ -150,8 +183,6 @@ public class BtService {
         // Update UI title
         updateStateTitle();
     }
-
-
 
     /**
      * This thread runs while attempting to make an outgoing connection
@@ -253,17 +284,13 @@ public class BtService {
 
         public void run() {
             byte[] buffer = new byte[40];			//4Byte * 9 should be enough
-            int bytes;
 
             // Keep listening to the InputStream while connected
             while (mState == STATE_CONNECTED) {
                 try {
                     // Read from the InputStream
-                    bytes = mmInStream.read(buffer);
-
-                    // Send the obtained bytes to the UI Activity
-                    mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer)
-                            .sendToTarget();
+                    mmInStream.read(buffer);
+                    posData = byteToFloat(buffer);
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
                     connectionLost();
@@ -281,6 +308,7 @@ public class BtService {
         }
     }
 
+
     /**
      * Indicate that the connection attempt failed and notify the UI Activity.
      */
@@ -297,7 +325,7 @@ public class BtService {
         updateStateTitle();
 
         // Start the service over to restart listening mode
-        BtService.this.start();
+        mBtBinder.start();
     }
 
 
@@ -317,8 +345,24 @@ public class BtService {
         updateStateTitle();
 
         // Start the service over to restart listening mode
-        BtService.this.start();
+        mBtBinder.start();
     }
+
+    private static final int dataSize = 9;      //size of the pose data
+    public float[] byteToFloat(byte[] bArray) {
+        float[] result = new float[dataSize];
+
+        for (int i = 0; i < dataSize; i++) {
+            int fInt = bArray[4 * i + 3] & 0xFF |
+                    (bArray[4 * i + 2] & 0xFF) << 8 |
+                    (bArray[4 * i + 1] & 0xFF) << 16 |
+                    (bArray[4 * i + 0] & 0xFF) << 24;
+            result[i] = Float.intBitsToFloat(fInt);
+        }
+        return result;
+    }
+
+
 }
 
 

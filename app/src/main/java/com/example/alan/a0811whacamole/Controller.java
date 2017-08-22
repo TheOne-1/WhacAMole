@@ -5,11 +5,14 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -57,10 +60,23 @@ public class Controller extends AppCompatActivity {
     private ArrayAdapter<String> mNewDevicesArrayAdapter;
 
     private ProgressBar progressBar;
-    private BtService mBtService;
     private Button scanButton;
-    private Button startGameButton;
     private BluetoothDevice device;
+    private BtService.BluetoothBinder mBtBinder;
+
+
+    private ServiceConnection btServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            mBtBinder = (BtService.BluetoothBinder) iBinder;
+            //send the handler to the service
+            mBtBinder.setHandler(mHandler);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,7 +144,6 @@ public class Controller extends AppCompatActivity {
         } else {
             pairedDevicesArrayAdapter.add("No Devices Have Been Paired");
         }
-        mBtService = new BtService(mHandler);
 
         Button startGameButton = (Button) findViewById(R.id.start_game_activity_button);
         startGameButton.setOnClickListener(new View.OnClickListener() {
@@ -136,6 +151,8 @@ public class Controller extends AppCompatActivity {
             public void onClick(View view) {
 //                if (mBtService.getState() == BtService.STATE_CONNECTED) {
                 if (true) {     //############### for the convince of testing
+                    //unbind the bluetooth service
+//                    unbindService(btServiceConnection);
                     Intent intent = new Intent(Controller.this, StartGame.class);
                     startActivity(intent);
                 } else {
@@ -144,13 +161,11 @@ public class Controller extends AppCompatActivity {
                 }
             }
         });
+
+        //set initial state as state connected
+        setStatus("Not Connected");
     }
 
-//    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        getMenuInflater().inflate(R.menu.toolbar_controller, menu);
-//        return true;
-//    }
 
 
     @Override
@@ -162,6 +177,14 @@ public class Controller extends AppCompatActivity {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         }
+
+
+        //run the bluetooth service
+        Intent intent = new Intent(Controller.this, BtService.class);
+        startService(intent);
+        Intent btBindIntent = new Intent(Controller.this, BtService.class);
+        bindService(btBindIntent, btServiceConnection, BIND_AUTO_CREATE);
+
     }
 
     @Override
@@ -171,11 +194,11 @@ public class Controller extends AppCompatActivity {
         // Performing this check in onResume() covers the case in which BT was
         // not enabled during onStart(), so we were paused to enable it...
         // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
-        if (mBtService != null) {
+        if (mBtBinder != null) {
             // Only if the state is STATE_NONE, do we know that we haven't started already
-            if (mBtService.getState() == BtService.STATE_NONE) {
+            if (mBtBinder.getState() == BtService.STATE_NONE) {
                 // Start the Bluetooth chat services
-                mBtService.start();
+                mBtBinder.start();
             }
         }
     }
@@ -256,9 +279,9 @@ public class Controller extends AppCompatActivity {
 
     private void connectDevice(BluetoothDevice device, boolean secure) {
         if (secure == Constants.REQUEST_CONNECT_DEVICE_SECURE)
-            mBtService.connect(device, Constants.REQUEST_CONNECT_DEVICE_SECURE);
+            mBtBinder.connect(device, Constants.REQUEST_CONNECT_DEVICE_SECURE);
         else
-            mBtService.connect(device, Constants.REQUEST_CONNECT_DEVICE_INSECURE);
+            mBtBinder.connect(device, Constants.REQUEST_CONNECT_DEVICE_INSECURE);
     }
 
 
@@ -329,7 +352,6 @@ public class Controller extends AppCompatActivity {
                         case BtService.STATE_CONNECTING:
                             setStatus("Connecting");
                             break;
-                        case BtService.STATE_LISTEN:
                         case BtService.STATE_NONE:
                             setStatus("Not connected.");
                             break;
@@ -343,21 +365,21 @@ public class Controller extends AppCompatActivity {
                             + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     break;
 
-                case Constants.MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
-                    // construct a string from the valid bytes in the buffer
-                    float[] posData = byteToFloat(readBuf);
-                    Toast.makeText(Controller.this,
-                            posData[0] + " " +
-                                    posData[1] + " " +
-                                    posData[2] + " " +
-                                    posData[3] + " " +
-                                    posData[4] + " " +
-                                    posData[5] + " " +
-                                    posData[6] + " " +
-                                    posData[7] + " " +
-                                    posData[8], Toast.LENGTH_SHORT).show();
-                    break;
+//                case Constants.MESSAGE_READ:
+//                    byte[] readBuf = (byte[]) msg.obj;
+//                    // construct a string from the valid bytes in the buffer
+//                    float[] posData = byteToFloat(readBuf);
+//                    Toast.makeText(Controller.this,
+//                            posData[0] + " " +
+//                                    posData[1] + " " +
+//                                    posData[2] + " " +
+//                                    posData[3] + " " +
+//                                    posData[4] + " " +
+//                                    posData[5] + " " +
+//                                    posData[6] + " " +
+//                                    posData[7] + " " +
+//                                    posData[8], Toast.LENGTH_SHORT).show();
+//                    break;
 
                 case Constants.MESSAGE_TOAST:
                     if (null != Controller.this) {
@@ -369,20 +391,6 @@ public class Controller extends AppCompatActivity {
         }
 
 
-        private static final int dataSize = 9;      //size of the pose data
-
-        public float[] byteToFloat(byte[] bArray) {
-            float[] result = new float[dataSize];
-
-            for (int i = 0; i < dataSize; i++) {
-                int fInt = bArray[4 * i + 3] & 0xFF |
-                        (bArray[4 * i + 2] & 0xFF) << 8 |
-                        (bArray[4 * i + 1] & 0xFF) << 16 |
-                        (bArray[4 * i + 0] & 0xFF) << 24;
-                result[i] = Float.intBitsToFloat(fInt);
-            }
-            return result;
-        }
     };
 }
 
