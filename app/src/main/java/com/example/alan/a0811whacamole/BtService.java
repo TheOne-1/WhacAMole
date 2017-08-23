@@ -21,7 +21,7 @@ import java.util.UUID;
  * Created by Alan on 2017/8/11.
  */
 
-public class BtService extends Service {
+public class BtService extends Service implements Constants {
     private static final String TAG = "BluetoothChatService";
     // Name for the SDP record when creating server socket
     private static final String NAME_SECURE = "BluetoothChatSecure";
@@ -139,7 +139,7 @@ public class BtService extends Service {
         mNewState = mState;
 
         // Give the new state to the Handler so the UI Activity can update
-        mHandler.obtainMessage(Constants.MESSAGE_STATE_CHANGE, mNewState, -1).sendToTarget();
+        mHandler.obtainMessage(MESSAGE_STATE_CHANGE, mNewState, -1).sendToTarget();
     }
 
     //Return the current connection state.
@@ -175,9 +175,9 @@ public class BtService extends Service {
         mConnectedThread.start();
 
         // Send the name of the connected device back to the UI Activity
-        Message msg = mHandler.obtainMessage(Constants.MESSAGE_DEVICE_NAME);
+        Message msg = mHandler.obtainMessage(MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.DEVICE_NAME, device.getName());
+        bundle.putString(DEVICE_NAME, device.getName());
         msg.setData(bundle);
         mHandler.sendMessage(msg);
         // Update UI title
@@ -314,9 +314,9 @@ public class BtService extends Service {
      */
     private void connectionFailed() {
         // Send a failure message back to the Activity
-        Message msg = mHandler.obtainMessage(Constants.MESSAGE_TOAST);
+        Message msg = mHandler.obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.TOAST, "Unable to connect device");
+        bundle.putString(TOAST, "Unable to connect device");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 
@@ -334,9 +334,9 @@ public class BtService extends Service {
      */
     private void connectionLost() {
         // Send a failure message back to the Activity
-        Message msg = mHandler.obtainMessage(Constants.MESSAGE_TOAST);
+        Message msg = mHandler.obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.TOAST, "Device connection was lost");
+        bundle.putString(TOAST, "Device connection was lost");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 

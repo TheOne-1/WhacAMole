@@ -6,23 +6,10 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 
-public class TrackService extends Service {
+public class TrackService extends Service implements Constants {
 
-    //define the scale of distance between real distance
-    // and pixel, given in dp/mm
-    private final float scale = 1;
 
-    //the difficult of the game is controlled by the duration
-    //of movement & waiting
-    public final int EASY_WAIT_DURATION = 4;
-    public final int HARD_WAIT_DURATION = 3;
-    public final int CRAZY_WAIT_DURATION = 2;
 
-    //to determine how many easy and hard round will be
-    //launched; crazy round will not stop until the end
-    //of the trial
-    public final int EASY_ROUND = 3;
-    public final int HARD_ROUND = 3;
 
     //coordinates of four holes
     private int holeX0 = 0;
@@ -52,21 +39,18 @@ public class TrackService extends Service {
         return mTrackBinder;
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        int[] positions = intent.getIntArrayExtra("holes_position");
-        holeX0 = positions[0];
-        holeX1 = positions[1];
-        holeY0 = positions[2];
-        holeY1 = positions[3];
-        return super.onStartCommand(intent, flags, startId);
-    }
+
 
     public class TrackBinder extends Binder {
         //to set the handler for this service
-        public void setParams(Handler handler, BtService.BluetoothBinder mBtBinder) {
+        public void setParams(Handler handler, BtService.BluetoothBinder mBtBinder,
+                              int[] positions) {
             TrackService.this.mHandler = handler;
             TrackService.this.mBtBinder = mBtBinder;
+            holeX0 = positions[0];
+            holeX1 = positions[1];
+            holeY0 = positions[2];
+            holeY1 = positions[3];
         }
 
         public void startTrackingThread() {
@@ -161,12 +145,16 @@ public class TrackService extends Service {
                         e.printStackTrace();
                     }
                 }
-                if (tracked) {
-                    mHandler.obtainMessage(Constants.MESSAGE_TRACKED).sendToTarget();
-                } else {
-                    mHandler.obtainMessage(Constants.MESSAGE_NOT_TRACKED).sendToTarget();
+
+                //only return the result when playing
+                if (mState == StartGame.STATE_PLAYING) {
+                    if (tracked) {
+                        mHandler.obtainMessage(MESSAGE_TRACKED).sendToTarget();
+                    } else {
+                        mHandler.obtainMessage(MESSAGE_NOT_TRACKED).sendToTarget();
+                    }
+                    currentRound++;
                 }
-                currentRound++;
             }
         }
     }
@@ -178,7 +166,7 @@ public class TrackService extends Service {
         int mobileX = 0;
         int mobileY = 0;
 
-        return false;
+        return true;
     }
 
 

@@ -41,7 +41,7 @@ import java.util.Set;
  * bluetooth. Location permission needs to be acquired by RunTime Permission.
  */
 
-public class Controller extends AppCompatActivity {
+public class Controller extends AppCompatActivity implements Constants {
 
     //Tag for Log
     private static final String TAG = "TAG";
@@ -179,7 +179,7 @@ public class Controller extends AppCompatActivity {
         }
 
 
-        //run the bluetooth service
+        //run the bluetooth service using startService so that the service won't stop
         Intent intent = new Intent(Controller.this, BtService.class);
         startService(intent);
         Intent btBindIntent = new Intent(Controller.this, BtService.class);
@@ -278,10 +278,10 @@ public class Controller extends AppCompatActivity {
     }
 
     private void connectDevice(BluetoothDevice device, boolean secure) {
-        if (secure == Constants.REQUEST_CONNECT_DEVICE_SECURE)
-            mBtBinder.connect(device, Constants.REQUEST_CONNECT_DEVICE_SECURE);
+        if (secure == REQUEST_CONNECT_DEVICE_SECURE)
+            mBtBinder.connect(device, REQUEST_CONNECT_DEVICE_SECURE);
         else
-            mBtBinder.connect(device, Constants.REQUEST_CONNECT_DEVICE_INSECURE);
+            mBtBinder.connect(device, REQUEST_CONNECT_DEVICE_INSECURE);
     }
 
 
@@ -302,7 +302,7 @@ public class Controller extends AppCompatActivity {
             // Get the BluetoothDevice object
             device = mBtAdapter.getRemoteDevice(address);
             // Attempt to connect to the device
-            connectDevice(device, Constants.REQUEST_CONNECT_DEVICE_SECURE);
+            connectDevice(device, REQUEST_CONNECT_DEVICE_SECURE);
         }
     };
 
@@ -340,7 +340,7 @@ public class Controller extends AppCompatActivity {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case Constants.MESSAGE_STATE_CHANGE:
+                case MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
                         case BtService.STATE_CONNECTED:
                             /**
@@ -358,30 +358,14 @@ public class Controller extends AppCompatActivity {
                     }
                     break;
 
-                case Constants.MESSAGE_DEVICE_NAME:
+                case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
                     mConnectedDeviceName = msg.getData().getString(Constants.DEVICE_NAME);
                     Toast.makeText(Controller.this, "Connected to "
                             + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     break;
 
-//                case Constants.MESSAGE_READ:
-//                    byte[] readBuf = (byte[]) msg.obj;
-//                    // construct a string from the valid bytes in the buffer
-//                    float[] posData = byteToFloat(readBuf);
-//                    Toast.makeText(Controller.this,
-//                            posData[0] + " " +
-//                                    posData[1] + " " +
-//                                    posData[2] + " " +
-//                                    posData[3] + " " +
-//                                    posData[4] + " " +
-//                                    posData[5] + " " +
-//                                    posData[6] + " " +
-//                                    posData[7] + " " +
-//                                    posData[8], Toast.LENGTH_SHORT).show();
-//                    break;
-
-                case Constants.MESSAGE_TOAST:
+                case MESSAGE_TOAST:
                     if (null != Controller.this) {
                         Toast.makeText(Controller.this, msg.getData().getString(Constants.TOAST),
                                 Toast.LENGTH_SHORT).show();

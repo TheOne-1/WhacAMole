@@ -38,7 +38,7 @@
                 />
 
             <Button
-                android:id="@+id/restart_button"
+                android:id="@+id/reset_button"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
@@ -92,7 +92,6 @@
                 android:layout_marginBottom="50dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="0"
                 android:textSize="100sp" />
 
 
@@ -150,6 +149,14 @@
                 android:layout_margin="40dp"
                 android:src="@drawable/ball"
                 android:visibility="invisible"
+                />
+
+            <ImageView
+                android:id="@+id/knot_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/knot"
+                android:layout_centerInParent="true"
                 />
 
         </com.example.alan.a0811whacamole.SquareRelativeLayout>

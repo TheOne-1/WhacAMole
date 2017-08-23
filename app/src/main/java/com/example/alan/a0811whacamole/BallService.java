@@ -18,22 +18,9 @@ import java.util.Random;
  * Created by Alan on 2017/8/21.
  */
 
-public class BallService extends Service {
+public class BallService extends Service implements Constants {
 
-    //the difficult of the game is controlled by the duration
-    //of movement & waiting
-    public final int EASY_MOVE_DURATION = 4;
-//    public final int EASY_WAIT_DURATION = 4;
-    public final int HARD_MOVE_DURATION = 3;
-//    public final int HARD_WAIT_DURATION = 3;
-    public final int CRAZY_MOVE_DURATION = 2;
-//    public final int CRAZY_WAIT_DURATION = 2;
 
-    //to determine how many easy and hard round will be
-    //launched; crazy round will not stop until the end
-    //of the trial
-    public final int EASY_ROUND = 3;
-    public final int HARD_ROUND = 3;
 
     private CatchState catchState = new CatchState(false);
 
@@ -45,20 +32,13 @@ public class BallService extends Service {
     private Handler mHandler;
     private BallMovementBinder mBallBinder = new BallMovementBinder();
 
+    private int mState = StartGame.STATE_RESTING;
+
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return mBallBinder;
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        int[] positions = intent.getIntArrayExtra("holes_position");
-        holeX0 = positions[0];
-        holeX1 = positions[1];
-        holeY0 = positions[2];
-        holeY1 = positions[3];
-        return super.onStartCommand(intent, flags, startId);
     }
 
 
@@ -66,8 +46,12 @@ public class BallService extends Service {
     //In this binder class, all the methods could be invoked by the StartGame Activity.
     public class BallMovementBinder extends Binder {
         //to set the handler for this service
-        public void setHandler(Handler handler) {
+        public void setParams(Handler handler, int[] positions) {
             BallService.this.mHandler = handler;
+            holeX0 = positions[0];
+            holeX1 = positions[1];
+            holeY0 = positions[2];
+            holeY1 = positions[3];
         }
 
         //to start a trial
@@ -84,11 +68,16 @@ public class BallService extends Service {
                 catchState.notify();
             }
         }
+
+        public void setState(int state) {
+            BallService.this.mState = state;
+        }
+
     }
 
     private class TrialThread extends Thread {
-        private int duration;
-        private long startTime;
+//        private int duration;
+//        private long startTime;
         //to indicate the current round in the loop
         private int currentRound;
         Random rand = new Random();
@@ -100,14 +89,14 @@ public class BallService extends Service {
 //        int waitDuration = EASY_WAIT_DURATION;
         public TrialThread(int duration) {
             currentRound = 0;
-            this.duration = duration;
+//            this.duration = duration;
         }
 
         @Override
         public void run() {
-            startTime = System.currentTimeMillis();
-            //control the duration of the game############################
-            while (System.currentTimeMillis() - startTime < 1000 * duration) {
+//            startTime = System.currentTimeMillis();
+//            //control the duration of the game############################
+            while (mState == StartGame.STATE_PLAYING) {
                 int nextHole = rand.nextInt(4);
                 //To prevent next hole equal to the last hole
                 while (nextHole == lastHole || nextHole == lastTwoHole)
@@ -125,7 +114,7 @@ public class BallService extends Service {
                 }
 
                 move(lastHole, nextHole, moveDuration);
-                Message msg = mHandler.obtainMessage(Constants.MESSAGE_NEXT_HOLE);
+                Message msg = mHandler.obtainMessage(MESSAGE_NEXT_HOLE);
                 Bundle bundle = new Bundle();
                 bundle.putInt("next_hole", nextHole);
                 msg.setData(bundle);
@@ -144,8 +133,8 @@ public class BallService extends Service {
                 lastHole = nextHole;
                 currentRound++;
             }
-            Message msg = mHandler.obtainMessage(Constants.MESSAGE_TRIAL_ENDED);
-            mHandler.sendMessage(msg);
+//            Message msg = mHandler.obtainMessage(Constants.MESSAGE_TIME_UP);
+//            mHandler.sendMessage(msg);
         }
     }
 
@@ -181,7 +170,7 @@ public class BallService extends Service {
         SerialAnimation animation = new SerialAnimation(fromX, toX, fromY, toY);
         //duration is given in seconds
         animation.setDuration(1000 * duration);
-        Message msg = mHandler.obtainMessage(Constants.MESSAGE_BALL_ANIMATION);
+        Message msg = mHandler.obtainMessage(MESSAGE_BALL_ANIMATION);
         Bundle bundle = new Bundle();
         bundle.putSerializable("animation", animation);
         msg.setData(bundle);

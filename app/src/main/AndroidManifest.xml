@@ -28,13 +28,17 @@
         <service
             android:name=".BallService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
         <service
             android:name=".TrackService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
         <service
             android:name=".BtService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".TimingService"
             android:enabled="true"
             android:exported="true"></service>
     </application>

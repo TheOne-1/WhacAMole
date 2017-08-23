@@ -17,30 +17,34 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-public class StartGame extends AppCompatActivity {
+public class StartGame extends AppCompatActivity implements Constants {
     private final String TAG = "TAG";
 
-    public static final int STATE_RESTING = 0;
+    public static final int STATE_INITIALIZATION = 2;
+    public static final int STATE_RESTING = 2;
     public static final int STATE_PLAYING = 1;
 
-    private int mState = STATE_RESTING;
-    //duration per game, given in seconds
-    private final int gameDuration = 60;
+    private int mState;
+    private int currentScore;
+
 
     //coordinates of four holes
     private int holeX0 = 0;
     private int holeX1 = 0;
     private int holeY0 = 0;
     private int holeY1 = 0;
+    int[] positions;
+
 
     private ImageView ballImage;
 
     private BallService.BallMovementBinder mBallBinder;
     private TrackService.TrackBinder mTrackBinder;
-
+    private TimingService.TimingBinder mTimingBinder;
     private BtService.BluetoothBinder mBtBinder;
 
     private int nextHole;
+    private int restSecond;
 
 
     @Override
@@ -51,9 +55,7 @@ public class StartGame extends AppCompatActivity {
 
 //        mBtService = (BtService) getIntent().getSerializableExtra("bluetooth_service");
 
-        ProgressBar remainingTimeBar = (ProgressBar) findViewById(R.id.remaining_time_bar);
-        remainingTimeBar.setMax(gameDuration);
-        remainingTimeBar.setProgress(gameDuration);
+
 
         Button startButton = (Button) findViewById(R.id.start_game_button);
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -62,14 +64,40 @@ public class StartGame extends AppCompatActivity {
                 if (mState == STATE_RESTING) {
                     ballImage.setVisibility(View.VISIBLE);
                     mState = STATE_PLAYING;
-                    mBallBinder.startATrial(gameDuration);
+
+                    mTimingBinder.setState(STATE_PLAYING);
+                    mTimingBinder.startCounting(GAME_DURATION);
+
+                    mBallBinder.setState(mState);
+                    mBallBinder.startATrial(GAME_DURATION);
 
                     //set state as playing and start the thread
                     mTrackBinder.setState(mState);
                     mTrackBinder.startTrackingThread();
+
+                    restSecond = GAME_DURATION;
+                    currentScore = 0;
                 }
             }
         });
+
+        Button resetButton = (Button) findViewById(R.id.reset_button);
+        resetButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mState == STATE_PLAYING) {
+                    mTimingBinder.setState(STATE_RESTING);
+                }
+                initialUI();
+            }
+        });
+
+        //bind the bluetooth service and StartGame class
+        Intent btBindIntent = new Intent(StartGame.this, BtService.class);
+        bindService(btBindIntent, btServiceConnection, BIND_AUTO_CREATE);
+
+        Intent timingIntent = new Intent(StartGame.this, TimingService.class);
+        bindService(timingIntent, timingServiceConnection, BIND_AUTO_CREATE);
 
         initialUI();
     }
@@ -83,7 +111,18 @@ public class StartGame extends AppCompatActivity {
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
+        }
+    };
 
+    private ServiceConnection timingServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            mTimingBinder = (TimingService.TimingBinder) iBinder;
+            mTimingBinder.setHandler(mHandler);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
         }
     };
 
@@ -91,8 +130,9 @@ public class StartGame extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             mBallBinder = (BallService.BallMovementBinder) iBinder;
-            //send the handler to the service
-            mBallBinder.setHandler(mHandler);
+            //set params if positions is initialized
+            if (positions != null)
+                mBallBinder.setParams(mHandler, positions);
         }
 
         @Override
@@ -104,7 +144,8 @@ public class StartGame extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             mTrackBinder = (TrackService.TrackBinder) iBinder;
-            mTrackBinder.setParams(mHandler, mBtBinder);
+            if (positions != null)
+                mTrackBinder.setParams(mHandler, mBtBinder, positions);
         }
 
         @Override
@@ -114,41 +155,55 @@ public class StartGame extends AppCompatActivity {
 
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        //bind the bluetooth service and StartGame class
-        Intent btBindIntent = new Intent(StartGame.this, BtService.class);
-        bindService(btBindIntent, btServiceConnection, BIND_AUTO_CREATE);
-    }
+    protected void onResume() {
+        super.onResume();
 
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        //get the position of holes
-        ImageView hole0 = (ImageView) findViewById(R.id.hole_0);
-        ImageView hole1 = (ImageView) findViewById(R.id.hole_3);
-        //get the margin on each side and cut those part
-        RelativeLayout.LayoutParams params =
-                (RelativeLayout.LayoutParams) hole0.getLayoutParams();
-        int offset = params.topMargin;
-        holeX0 = hole0.getLeft() - offset;
-        holeY0 = hole0.getTop() - offset;
-        holeX1 = hole1.getLeft() - offset;
-        holeY1 = hole1.getTop() - offset;
-
-        //start the ball service
-        Intent ballIntent = new Intent(StartGame.this, BallService.class);
-        ballIntent.putExtra("holes_position", new int[]{holeX0, holeX1, holeY0, holeY1});
-        startService(ballIntent);
         //bind the ball service and StartGame class
         Intent ballBindIntent = new Intent(StartGame.this, BallService.class);
         bindService(ballBindIntent, ballServiceConnection, BIND_AUTO_CREATE);
 
-        //start the track service
-        Intent trackIntent = new Intent(StartGame.this, TrackService.class);
-        trackIntent.putExtra("holes_position", new int[]{holeX0, holeX1, holeY0, holeY1});
-        startService(trackIntent);
         Intent trackBindIntent = new Intent(StartGame.this, TrackService.class);
         bindService(trackBindIntent, trackServiceConnection, BIND_AUTO_CREATE);
+
+        mState = STATE_INITIALIZATION;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Intent stopBallIntent = new Intent(StartGame.this, BallService.class);
+        stopService(stopBallIntent);
+        Intent stopTrackIntent = new Intent(StartGame.this, BallService.class);
+        stopService(stopTrackIntent);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        //only be invoked when the activity is created
+        if (mState == STATE_INITIALIZATION) {
+            //get the position of holes
+            ImageView hole0 = (ImageView) findViewById(R.id.hole_0);
+            ImageView hole1 = (ImageView) findViewById(R.id.hole_3);
+            //get the margin on each side and cut those part
+            RelativeLayout.LayoutParams params =
+                    (RelativeLayout.LayoutParams) hole0.getLayoutParams();
+            int offset = params.topMargin;
+            holeX0 = hole0.getLeft() - offset;
+            holeY0 = hole0.getTop() - offset;
+            holeX1 = hole1.getLeft() - offset;
+            holeY1 = hole1.getTop() - offset;
+
+            positions = new int[]{holeX0, holeX1, holeY0, holeY1};
+
+            //set params if binder is initialized, is the same as
+            // functions in onServiceConnected
+            if (mBallBinder != null)
+                mBallBinder.setParams(mHandler, positions);
+            if (mTrackBinder != null)
+                mTrackBinder.setParams(mHandler, mBtBinder, positions);
+
+
+        }
     }
 
 
@@ -156,7 +211,7 @@ public class StartGame extends AppCompatActivity {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case Constants.MESSAGE_STATE_CHANGE:
+                case MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
                         case BtService.STATE_CONNECTED:
                             setStatus("Connected");
@@ -169,7 +224,7 @@ public class StartGame extends AppCompatActivity {
                             break;
                     }
                     break;
-                case Constants.MESSAGE_BALL_ANIMATION:
+                case MESSAGE_BALL_ANIMATION:
                     TranslateAnimation animation = (TranslateAnimation)
                             msg.getData().getSerializable("animation");
                     //set the ball at the final position of the animation
@@ -194,28 +249,41 @@ public class StartGame extends AppCompatActivity {
                     });
                     ballImage.startAnimation(animation);
                     break;
-                case Constants.MESSAGE_NEXT_HOLE:
+                case MESSAGE_NEXT_HOLE:
                     //set the next hole for track service
                     nextHole = msg.getData().getInt("next_hole");
                     break;
 
-                case Constants.MESSAGE_TRACKED:
-
-                case Constants.MESSAGE_NOT_TRACKED:
+                case MESSAGE_TRACKED:
+                    currentScore++;
+                    TextView scoreText = (TextView) findViewById(R.id.current_score_text);
+                    scoreText.setText("" + currentScore);
+                case MESSAGE_NOT_TRACKED:
                     mBallBinder.notifyTrialThread();
                     break;
 
+                case MESSAGE_ONE_SECOND:
+                    restSecond--;
+                    updateTimerUI(restSecond);
+                    break;
 
-                case Constants.MESSAGE_TRIAL_ENDED:
+                case MESSAGE_TIME_UP:
                     mState = STATE_RESTING;
-                    ballImage.setVisibility(View.INVISIBLE);
+                    mBallBinder.setState(mState);
+                    //TODO: wake up the ball thread so that it can stop
+                    mBallBinder.notifyTrialThread();
                     mTrackBinder.setState(mState);
+                    mTrackBinder.notifyTrackingThread();
+                    //stop animation
+                    ballImage.clearAnimation();
+                    ballImage.setVisibility(View.INVISIBLE);
                     break;
                 default:
                     break;
             }
         }
     };
+
     //Updates the status on the right left corner
     private void setStatus(CharSequence state) {
         TextView currentState = (TextView) findViewById(R.id.current_state_text_start_game);
@@ -227,9 +295,21 @@ public class StartGame extends AppCompatActivity {
         //set initial state as state connected
         setStatus("Connected");
         TextView remainingTimeText = (TextView) findViewById(R.id.remaining_time_text);
-        remainingTimeText.setText("" + gameDuration);
+        remainingTimeText.setText("" + GAME_DURATION);
+        ProgressBar remainingTimeBar = (ProgressBar) findViewById(R.id.remaining_time_bar);
+        remainingTimeBar.setMax(GAME_DURATION);
+        remainingTimeBar.setProgress(GAME_DURATION);
+        TextView scoreText = (TextView) findViewById(R.id.current_score_text);
+        scoreText.setText("" + 0);
     }
 
+    private void updateTimerUI(int restSecond) {
+        TextView remainingTimeText = (TextView) findViewById(R.id.remaining_time_text);
+        remainingTimeText.setText("" + restSecond);
+        ProgressBar remainingTimeBar = (ProgressBar) findViewById(R.id.remaining_time_bar);
+        remainingTimeBar.setProgress(restSecond);
+
+    }
 }
 
 
