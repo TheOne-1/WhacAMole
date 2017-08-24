@@ -46,14 +46,6 @@ public class TimingService extends Service implements Constants {
             long startTime = System.currentTimeMillis();
             int restDuration = gameDuration;
             while (restDuration > 0) {
-//                try {
-//                    sleep(950);     //sleep less than 1 second
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//                if (mState == StartGame.STATE_RESTING)
-//                    break;
-
                 //wait until 1 second
                 while (System.currentTimeMillis() - startTime <
                         1000 * (gameDuration - restDuration + 1)) {

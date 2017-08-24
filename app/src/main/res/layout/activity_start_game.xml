@@ -146,17 +146,17 @@
                 android:id="@+id/ball_image"
                 android:layout_width="80dp"
                 android:layout_height="80dp"
-                android:layout_margin="40dp"
                 android:src="@drawable/ball"
                 android:visibility="invisible"
                 />
 
             <ImageView
-                android:id="@+id/knot_view"
+                android:id="@+id/knot_image"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/knot"
-                android:layout_centerInParent="true"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentRight="true"
                 />
 
         </com.example.alan.a0811whacamole.SquareRelativeLayout>

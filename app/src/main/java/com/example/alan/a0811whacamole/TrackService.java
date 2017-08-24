@@ -3,13 +3,14 @@ package com.example.alan.a0811whacamole;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
+
+import static java.lang.Math.abs;
 
 public class TrackService extends Service implements Constants {
-
-
-
 
     //coordinates of four holes
     private int holeX0 = 0;
@@ -17,6 +18,11 @@ public class TrackService extends Service implements Constants {
     private int holeY0 = 0;
     private int holeY1 = 0;
 
+    int waitDuration;
+    int currentRound;
+
+    private int maxMobileX;
+    private int maxMobileY;
 
     private TrackBinder mTrackBinder = new TrackBinder();
     private Handler mHandler;
@@ -25,8 +31,8 @@ public class TrackService extends Service implements Constants {
 
     //initial the first hole
     private Hole nextHole = new Hole(0);
-    private int mState = StartGame.STATE_RESTING;
-
+    private int mState = StartGame.STATE_INITIALIZATION;
+    private boolean isCatchable;
 
     //to indicate whether reached the time limit
 //    private boolean ballWaiting;
@@ -55,154 +61,166 @@ public class TrackService extends Service implements Constants {
 
         public void startTrackingThread() {
             TrackingThread trackingThread = new TrackingThread();
+            setCatchable(UNCATCHABLE);
             trackingThread.start();
         }
 
-        public void setNextHole(int nextHole) {
-            TrackService.this.nextHole.setHole(nextHole);
-            switch (nextHole) {
-                case 0:
-                    TrackService.this.nextHole.setHoleX(holeX0);
-                    TrackService.this.nextHole.setHoleY(holeY0);
-                    break;
-                case 1:
-                    TrackService.this.nextHole.setHoleX(holeX1);
-                    TrackService.this.nextHole.setHoleY(holeY0);
-                    break;
-                case 2:
-                    TrackService.this.nextHole.setHoleX(holeX0);
-                    TrackService.this.nextHole.setHoleY(holeY1);
-                    break;
-                case 3:
-                    TrackService.this.nextHole.setHoleX(holeX1);
-                    TrackService.this.nextHole.setHoleY(holeY1);
-                    break;
-            }
+        public void setNextHole(Hole nextHole) {
+            TrackService.this.nextHole.setHole(nextHole.getHoleId());
+            TrackService.this.nextHole.setHoleX(nextHole.getHoleX());
+            TrackService.this.nextHole.setHoleY(nextHole.getHoleY());
         }
 
-        public void notifyTrackingThread() {
-            synchronized (nextHole) {
-                nextHole.notify();
-            }
+        public void initialCatching() {
+            setState(StartGame.STATE_PLAYING);
+            waitDuration = EASY_WAIT_DURATION;
+            currentRound = 0;
+        }
+
+        public void startCatching() {
+            setCatchable(CATCHABLE);
+        }
+
+        public void stopPlaying() {
+            setState(StartGame.STATE_RESTING);
+            setCatchable(UNCATCHABLE);
         }
 
         public void setState(int state) {
             TrackService.this.mState = state;
         }
+
+        public void setCatchable(Boolean isCatchable) {
+            TrackService.this.isCatchable = isCatchable;
+        }
+
+        public void setMax(int maxMobileX, int maxMobileY) {
+            TrackService.this.maxMobileX = maxMobileX;
+            TrackService.this.maxMobileY = maxMobileY;
+        }
     }
 
     private class TrackingThread extends Thread {
 
-        int waitDuration = EASY_WAIT_DURATION;
-        int currentRound;
-
-        public TrackingThread() {
-            currentRound = 0;
-        }
+//        public TrackingThread() {
+//            currentRound = 0;
+//        }
 
         @Override
         public void run() {
 
-            //to make sure the current time is within the waiting duration
-            //as well as one trial duration
-            while (mState == StartGame.STATE_PLAYING) {
+            //keep running when this service is alive
+            while (true) {
+                //update the position of knot
+                updateKnot();
 
-                //set the time of one round
-                if (currentRound >= EASY_ROUND) {
-                    if (currentRound >= (EASY_ROUND + HARD_ROUND)) {
-                        waitDuration = CRAZY_WAIT_DURATION;
-                    } else {
-                        waitDuration = HARD_WAIT_DURATION;
+                if (isCatchable) {
+                    //set the time of one round
+                    if (currentRound >= EASY_ROUND) {
+                        if (currentRound >= (EASY_ROUND + HARD_ROUND)) {
+                            waitDuration = CRAZY_WAIT_DURATION;
+                        } else {
+                            waitDuration = HARD_WAIT_DURATION;
+                        }
                     }
-                }
-                synchronized (nextHole) {
-                    try {
-                        nextHole.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-                long startTime = System.currentTimeMillis();
-                int matchedTimes = 0;       //count the time of match to avoid noise
 
-                boolean tracked = false;
-                while ((System.currentTimeMillis() - startTime < 1000 * waitDuration)
-                        && mState == StartGame.STATE_PLAYING) {
-                    if (positionMatched()) {
-                        matchedTimes++;
-                    } else {
-                        matchedTimes = 0;
+                    long startTime = System.currentTimeMillis();
+                    int matchedTimes = 0;       //count the time of match to avoid noise
+                    boolean tracked = false;
+                    /*
+                    * 以下循环可以用简单的判断代替，如果在已经在其他地方滤波
+                    * while (System.currentTimeMillis() - startTime < 1000 * waitDuration) {
+                    *    if (positionMatched())
+                    *       return true;
+                    *    else
+                    *       return false;
+                    * }
+                    * */
+                    while ((System.currentTimeMillis() - startTime < 1000 * waitDuration)
+                            && mState == StartGame.STATE_PLAYING) {
+                        if (positionMatched()) {
+                            matchedTimes++;
+                        } else {
+                            matchedTimes = 0;
+                        }
+                        //at least match twice to catch
+                        if (matchedTimes >= 2) {
+                            tracked = true;
+                            break;
+                        }
+                        //sleep to avoid noise; the duration should be determined by
+                        //refresh rate of the Bluetooth transmission
+                        try {
+                            sleep(20);      //get position data every 20 ms
+                            updateKnot();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
-                    if (matchedTimes >= 3) {
-                        tracked = true;
-                        break;
+                    //only return the result when playing
+                    if (mState == StartGame.STATE_PLAYING) {
+                        if (tracked) {
+                            mHandler.obtainMessage(MESSAGE_TRACKED).sendToTarget();
+                        } else {
+                            mHandler.obtainMessage(MESSAGE_NOT_TRACKED).sendToTarget();
+                        }
+                        currentRound++;
+                        mTrackBinder.setCatchable(UNCATCHABLE);
                     }
-                    //sleep to avoid noise; the duration should be determined by
-                    //refresh rate of the Bluetooth transmission
+                } else {
+                    //sleep to save resource
                     try {
                         sleep(20);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-
-                //only return the result when playing
-                if (mState == StartGame.STATE_PLAYING) {
-                    if (tracked) {
-                        mHandler.obtainMessage(MESSAGE_TRACKED).sendToTarget();
-                    } else {
-                        mHandler.obtainMessage(MESSAGE_NOT_TRACKED).sendToTarget();
-                    }
-                    currentRound++;
-                }
             }
         }
     }
 
-    public boolean positionMatched() {
+    int mobileX = 0;
+    int mobileY = 0;
+
+    public void updateKnot() {
         float[] mobilePos = mBtBinder.getPosData();
 //        //mobileX and mobileY represents the transferred
 //        //coordinates of mobile on the tablet
-        int mobileX = 0;
-        int mobileY = 0;
+        mobileX = (int) (mobilePos[1] * SCALE);
+        mobileY = (int) (mobilePos[2] * SCALE);
 
-        return true;
+        //to make sure the coordinates are within the range
+        if (mobileX < 0)
+            mobileX = 0;
+        else if (mobileX > maxMobileX)
+            mobileX = maxMobileX;
+        if (mobileY < 0)
+            mobileY = 0;
+        else if (mobileY > maxMobileY)
+            mobileY = maxMobileY;
+        Message msg = mHandler.obtainMessage(MESSAGE_UPDATE_KNOT);
+        Bundle bundle = new Bundle();
+        bundle.putIntArray("mobile_pos", new int[] {mobileX, mobileY});
+        msg.setData(bundle);
+        mHandler.sendMessage(msg);
+
+    }
+
+    public boolean positionMatched() {
+
+        int ballX = nextHole.getHoleX();
+        int ballY = nextHole.getHoleY();
+
+        //捕获逻辑
+        if (abs(ballX - mobileX) < MIN_MATCH_DIS &&
+                abs(ballY - mobileY) < MIN_MATCH_DIS)
+            return true;
+        else
+            return false;
     }
 
 
-    private class Hole {
-        private int holeId;
-        private int holeX;
-        private int holeY;
 
-        public Hole(int hole) {
-            this.holeId = hole;
-        }
-
-        public int getHole() {
-            return holeId;
-        }
-
-        public void setHole(int hole) {
-            this.holeId = hole;
-        }
-
-        public int getHoleX() {
-            return holeX;
-        }
-
-        public void setHoleX(int holeX) {
-            this.holeX = holeX;
-        }
-
-        public int getHoleY() {
-            return holeY;
-        }
-
-        public void setHoleY(int holeY) {
-            this.holeY = holeY;
-        }
-    }
 }
 
 

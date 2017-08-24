@@ -8,7 +8,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.animation.TranslateAnimation;
 
 import java.io.Serializable;
@@ -55,16 +54,15 @@ public class BallService extends Service implements Constants {
         }
 
         //to start a trial
-        public void startATrial(int duration) {
-            Log.d("TAG", "start a trial");
-            TrialThread trialThread = new TrialThread(duration);
+        public void startATrial() {
+            TrialThread trialThread = new TrialThread();
             trialThread.start();
         }
 
         //wake up the thread that the ball is in the hole and is catchable
         public void notifyTrialThread() {
             synchronized (catchState) {
-                catchState.setCatchable(false);
+//                catchState.setCatchable(false);
                 catchState.notify();
             }
         }
@@ -73,34 +71,38 @@ public class BallService extends Service implements Constants {
             BallService.this.mState = state;
         }
 
+        public void stopPlaying() {
+            mBallBinder.setState(StartGame.STATE_RESTING);
+            //TODO: wake up the ball thread so that it can stop
+            mBallBinder.notifyTrialThread();
+        }
+
     }
 
     private class TrialThread extends Thread {
-//        private int duration;
-//        private long startTime;
         //to indicate the current round in the loop
         private int currentRound;
         Random rand = new Random();
         //In every movement, the ball starts from the last
         //hole. The first hole is always the hole_0.
-        int lastHole = 0;
-        int lastTwoHole = 0;
-        int moveDuration = EASY_MOVE_DURATION;
+        int lastHole;
+        int lastTwoHole;
+        int moveDuration;
 //        int waitDuration = EASY_WAIT_DURATION;
-        public TrialThread(int duration) {
+        public TrialThread() {
             currentRound = 0;
-//            this.duration = duration;
+            lastHole = 0;
+            lastTwoHole = 0;
+            moveDuration = EASY_MOVE_DURATION;
         }
 
         @Override
         public void run() {
-//            startTime = System.currentTimeMillis();
-//            //control the duration of the game############################
             while (mState == StartGame.STATE_PLAYING) {
-                int nextHole = rand.nextInt(4);
+                int nextHoleId = rand.nextInt(4);
                 //To prevent next hole equal to the last hole
-                while (nextHole == lastHole || nextHole == lastTwoHole)
-                    nextHole = rand.nextInt(4);
+                while (nextHoleId == lastHole || nextHoleId == lastTwoHole)
+                    nextHoleId = rand.nextInt(4);
 
                 //set the time of one round
                 if (currentRound >= EASY_ROUND) {
@@ -113,10 +115,10 @@ public class BallService extends Service implements Constants {
                     }
                 }
 
-                move(lastHole, nextHole, moveDuration);
+                move(lastHole, nextHoleId, moveDuration);
                 Message msg = mHandler.obtainMessage(MESSAGE_NEXT_HOLE);
                 Bundle bundle = new Bundle();
-                bundle.putInt("next_hole", nextHole);
+                bundle.putInt("next_hole", nextHoleId);
                 msg.setData(bundle);
                 mHandler.sendMessage(msg);
 
@@ -130,11 +132,9 @@ public class BallService extends Service implements Constants {
                 }
 
                 lastTwoHole = lastHole;
-                lastHole = nextHole;
+                lastHole = nextHoleId;
                 currentRound++;
             }
-//            Message msg = mHandler.obtainMessage(Constants.MESSAGE_TIME_UP);
-//            mHandler.sendMessage(msg);
         }
     }
 
@@ -143,31 +143,47 @@ public class BallService extends Service implements Constants {
         //start hole cannot equal to end hole
         if (startHole == endHole)
             return;
-        float fromX = 0;
-        float fromY = 0;
         float toX = 0;
         float toY = 0;
         switch (startHole) {
             case 0:
-                fromX = holeX0; fromY = holeY0; break;
+                switch (endHole) {
+                    case 1:
+                        toX = holeX1 - holeX0; break;
+                    case 2:
+                        toY = holeY1 - holeY0; break;
+                    case 3:
+                        toX = holeX1 - holeX0; toY = holeY1 - holeY0; break;
+                } break;
             case 1:
-                fromX = holeX1; fromY = holeY0; break;
+                switch (endHole) {
+                    case 0:
+                        toX = holeX0 - holeX1; break;
+                    case 2:
+                        toX = holeX0 - holeX1; toY = holeY1 - holeY0; break;
+                    case 3:
+                        toY = holeY1 - holeY0; break;
+                } break;
             case 2:
-                fromX = holeX0; fromY = holeY1; break;
+                switch (endHole) {
+                    case 0:
+                        toY = holeY0 - holeY1; break;
+                    case 1:
+                        toX = holeX1 - holeX0; toY = holeY0 - holeY1; break;
+                    case 3:
+                        toX = holeX1 - holeX0; break;
+                } break;
             case 3:
-                fromX = holeX1; fromY = holeY1; break;
+                switch (endHole) {
+                    case 0:
+                        toX = holeX0 - holeX1; toY = holeY0 - holeY1; break;
+                    case 1:
+                        toY = holeY0 - holeY1; break;
+                    case 2:
+                        toX = holeX0 - holeX1; break;
+                } break;
         }
-        switch (endHole) {
-            case 0:
-                toX = holeX0; toY = holeY0; break;
-            case 1:
-                toX = holeX1; toY = holeY0; break;
-            case 2:
-                toX = holeX0; toY = holeY1; break;
-            case 3:
-                toX = holeX1; toY = holeY1; break;
-        }
-        SerialAnimation animation = new SerialAnimation(fromX, toX, fromY, toY);
+        SerialAnimation animation = new SerialAnimation(0, toX, 0, toY);
         //duration is given in seconds
         animation.setDuration(1000 * duration);
         Message msg = mHandler.obtainMessage(MESSAGE_BALL_ANIMATION);
@@ -177,7 +193,7 @@ public class BallService extends Service implements Constants {
         mHandler.sendMessage(msg);
     }
 
-    //for wait and notify
+    //这个类并没有什么卵用，就是用来实现 wait and notify 的
     private class CatchState {
         private boolean catchable;
 
@@ -185,9 +201,9 @@ public class BallService extends Service implements Constants {
             this.catchable = catchable;
         }
 
-        public boolean isCatchable() {
-            return catchable;
-        }
+//        public boolean isCatchable() {
+//            return catchable;
+//        }
 
         public void setCatchable(boolean catchable) {
             this.catchable = catchable;

@@ -15,6 +15,7 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -73,6 +74,11 @@ public class BtService extends Service implements Constants {
         }
 
         public float[] getPosData() {
+//            Random random = new Random();
+//            posData[1] = 1000 * random.nextFloat() - 300;
+//            posData[2] = 1000 * random.nextFloat() - 300;
+//            posData[1] = 4000;
+//            posData[2] = 4000;
             return posData;
         }
 
