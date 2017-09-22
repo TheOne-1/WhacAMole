@@ -125,11 +125,11 @@ public class Controller extends AppCompatActivity implements Constants {
 
         // Register for broadcasts when a device is discovered
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+//        filter.addAction(BluetoothDevice.ACTION_FOUND);
+        // Register for broadcasts when discovery has finished
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         this.registerReceiver(mReceiver, filter);
 
-        // Register for broadcasts when discovery has finished
-        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        this.registerReceiver(mReceiver, filter);
 
         // Get the local Bluetooth adapter
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -164,7 +164,6 @@ public class Controller extends AppCompatActivity implements Constants {
         //set initial state as state connected
         setStatus("Not Connected");
     }
-
 
 
     @Override
@@ -210,9 +209,11 @@ public class Controller extends AppCompatActivity implements Constants {
         if (mBtAdapter != null) {
             mBtAdapter.cancelDiscovery();
         }
-
         // Unregister broadcast listeners
         this.unregisterReceiver(mReceiver);
+        if (mBtBinder != null) {
+            mBtBinder.disconnect();
+        }
     }
 
 
@@ -300,8 +301,10 @@ public class Controller extends AppCompatActivity implements Constants {
 
             // Get the BluetoothDevice object
             device = mBtAdapter.getRemoteDevice(address);
-            // Attempt to connect to the device
-            connectDevice(device, REQUEST_CONNECT_DEVICE_SECURE);
+            //avoid connecting to the same device
+            if (mConnectedDeviceName == null || !mConnectedDeviceName.equals(device.getName()))
+                connectDevice(device, REQUEST_CONNECT_DEVICE_SECURE);
+
         }
     };
 
@@ -329,7 +332,6 @@ public class Controller extends AppCompatActivity implements Constants {
                 scanButton.setVisibility(View.VISIBLE);
                 if (mNewDevicesArrayAdapter.getCount() == 0) {
                     mNewDevicesArrayAdapter.add("No Devices Found");
-//                    mNewDevicesArrayAdapter.notifyDataSetChanged();
                 }
             }
         }

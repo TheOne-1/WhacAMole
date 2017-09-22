@@ -23,9 +23,9 @@ public interface Constants {
 
     //the difficult of the game is controlled by the duration
     //of movement & waiting 在这里设置等待时间
-    public final int EASY_WAIT_DURATION = 40;
-    public final int HARD_WAIT_DURATION = 30;
-    public final int CRAZY_WAIT_DURATION = 20;
+    public final int EASY_WAIT_DURATION = 15;
+    public final int HARD_WAIT_DURATION = 10;
+    public final int CRAZY_WAIT_DURATION = 5;
 
     //to determine how many easy and hard round will be
     //launched; crazy round will not stop until the end

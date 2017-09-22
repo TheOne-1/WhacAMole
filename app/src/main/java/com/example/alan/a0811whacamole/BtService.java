@@ -86,58 +86,80 @@ public class BtService extends Service implements Constants {
             return mState;
         }
 
-        public synchronized void start() {
-            Log.d(TAG, "start");
+        public void disconnect() {
+            BtService.this.stop();
+        }
 
-            // Cancel any thread attempting to make a connection
+        public void start() {
+            BtService.this.start();
+        }
+
+        public void connect(BluetoothDevice device, boolean secure) {
+            BtService.this.connect(device, secure);
+        }
+
+
+    }
+
+    private synchronized void start() {
+        Log.d(TAG, "start");
+
+        // Cancel any thread attempting to make a connection
+        if (mConnectThread != null) {
+            mConnectThread.cancel();
+            mConnectThread = null;
+        }
+
+        // Cancel any thread currently running a connection       //#########################
+        if (mConnectedThread != null) {
+            mConnectedThread.cancel();
+            mConnectedThread = null;
+        }
+
+        // Update UI title
+        updateStateTitle();
+    }
+
+    private synchronized void stop() {
+        if (mConnectThread != null) {
+            mConnectThread.cancel();
+            mConnectThread = null;
+        }
+        if (mConnectedThread != null) {
+            mConnectedThread.cancel();
+            mConnectedThread = null;
+        }
+    }
+
+    /**
+     * Start the ConnectThread to initiate a connection to a remote device.
+     *
+     * @param device The BluetoothDevice to connect
+     * @param secure Socket Security type - Secure (true) , Insecure (false)
+     */
+    private synchronized void connect(BluetoothDevice device, boolean secure) {
+        Log.d(TAG, "connect to: " + device);
+
+        // Cancel any thread attempting to make a connection
+        if (mState == STATE_CONNECTING) {
             if (mConnectThread != null) {
                 mConnectThread.cancel();
                 mConnectThread = null;
             }
-
-            // Cancel any thread currently running a connection       //#########################
-            if (mConnectedThread != null) {
-                mConnectedThread.cancel();
-                mConnectedThread = null;
-            }
-
-            // Update UI title
-            updateStateTitle();
         }
 
-
-
-        /**
-         * Start the ConnectThread to initiate a connection to a remote device.
-         *
-         * @param device The BluetoothDevice to connect
-         * @param secure Socket Security type - Secure (true) , Insecure (false)
-         */
-        public synchronized void connect(BluetoothDevice device, boolean secure) {
-            Log.d(TAG, "connect to: " + device);
-
-            // Cancel any thread attempting to make a connection
-            if (mState == STATE_CONNECTING) {
-                if (mConnectThread != null) {
-                    mConnectThread.cancel();
-                    mConnectThread = null;
-                }
-            }
-
-            // Cancel any thread currently running a connection       //#########################
-            if (mConnectedThread != null) {
-                mConnectedThread.cancel();
-                mConnectedThread = null;
-            }
-
-            // Start the thread to connect with the given device
-            mConnectThread = new ConnectThread(device, secure);
-            mConnectThread.start();
-            // Update UI title
-            updateStateTitle();
+        // Cancel any thread currently running a connection       //#########################
+        if (mConnectedThread != null) {
+            mConnectedThread.cancel();
+            mConnectedThread = null;
         }
+
+        // Start the thread to connect with the given device
+        mConnectThread = new ConnectThread(device, secure);
+        mConnectThread.start();
+        // Update UI title
+        updateStateTitle();
     }
-
 
     //Update UI title according to the current state
     private synchronized void updateStateTitle() {
@@ -338,7 +360,7 @@ public class BtService extends Service implements Constants {
     /**
      * Indicate that the connection was lost and notify the UI Activity.
      */
-    private void connectionLost() {
+    protected void connectionLost() {
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();

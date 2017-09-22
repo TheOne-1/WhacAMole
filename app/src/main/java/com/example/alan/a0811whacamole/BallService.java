@@ -33,14 +33,11 @@ public class BallService extends Service implements Constants {
 
     private int mState = StartGame.STATE_RESTING;
 
-
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return mBallBinder;
     }
-
-
 
     //In this binder class, all the methods could be invoked by the StartGame Activity.
     public class BallMovementBinder extends Binder {
@@ -85,19 +82,17 @@ public class BallService extends Service implements Constants {
         Random rand = new Random();
         //In every movement, the ball starts from the last
         //hole. The first hole is always the hole_0.
-        int lastHole;
-        int lastTwoHole;
         int moveDuration;
 //        int waitDuration = EASY_WAIT_DURATION;
         public TrialThread() {
             currentRound = 0;
-            lastHole = 0;
-            lastTwoHole = 0;
             moveDuration = EASY_MOVE_DURATION;
         }
 
         @Override
         public void run() {
+            int lastHole = 0;
+            int lastTwoHole = 0;
             while (mState == StartGame.STATE_PLAYING) {
                 int nextHoleId = rand.nextInt(4);
                 //To prevent next hole equal to the last hole
@@ -125,7 +120,7 @@ public class BallService extends Service implements Constants {
                 synchronized (catchState) {
                     try {
                         catchState.setCatchable(true);
-                        catchState.wait();
+                        catchState.wait();      //wait for ... or stopPlaying()
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -135,6 +130,7 @@ public class BallService extends Service implements Constants {
                 lastHole = nextHoleId;
                 currentRound++;
             }
+            int i = 0;
         }
     }
 

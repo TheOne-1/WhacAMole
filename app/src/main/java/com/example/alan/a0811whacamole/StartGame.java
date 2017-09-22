@@ -28,9 +28,9 @@ import java.io.IOException;
 public class StartGame extends AppCompatActivity implements Constants {
     private final String TAG = "TAG";
 
-    public static final int STATE_INITIALIZATION = 2;
+    public static final int STATE_INITIALIZATION = 1;
     public static final int STATE_RESTING = 2;
-    public static final int STATE_PLAYING = 1;
+    public static final int STATE_PLAYING = 3;
 
     private int mState;
     private int currentScore;
@@ -100,7 +100,10 @@ public class StartGame extends AppCompatActivity implements Constants {
             @Override
             public void onClick(View view) {
                 if (mState == STATE_PLAYING) {
-                    mTimingBinder.setState(STATE_RESTING);
+                    mState = STATE_RESTING;
+                    mTimingBinder.setState(mState);
+//                    mBallBinder.setState(mState);
+                    mBallBinder.stopPlaying();
                 }
                 resetUI();
             }
@@ -232,6 +235,7 @@ public class StartGame extends AppCompatActivity implements Constants {
             ballImage.setX(holeX0);
             ballImage.setY(holeY0);
         }
+        mState = STATE_RESTING;
     }
 
 
@@ -383,6 +387,8 @@ public class StartGame extends AppCompatActivity implements Constants {
         remainingTimeBar.setProgress(GAME_DURATION);
         TextView scoreText = (TextView) findViewById(R.id.current_score_text);
         scoreText.setText("" + 0);
+        ballImage.setX(holeX0);
+        ballImage.setY(holeY0);
     }
 
     private void updateTimerUI(int restSecond) {
