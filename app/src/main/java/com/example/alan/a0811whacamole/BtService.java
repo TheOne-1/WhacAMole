@@ -56,6 +56,7 @@ public class BtService extends Service implements Constants {
     public IBinder onBind(Intent intent) {
         return mBtBinder;
     }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -110,7 +111,7 @@ public class BtService extends Service implements Constants {
             mConnectThread = null;
         }
 
-        // Cancel any thread currently running a connection       //#########################
+        // Cancel any thread currently running a connection
         if (mConnectedThread != null) {
             mConnectedThread.cancel();
             mConnectedThread = null;
@@ -187,6 +188,7 @@ public class BtService extends Service implements Constants {
         Log.d(TAG, "connected, Socket Type:" + socketType);
 
         // Cancel the thread that completed the connection
+        // mConnectThread was set null in its run method.
         if (mConnectThread != null) {
             mConnectThread.cancel();
             mConnectThread = null;
@@ -200,7 +202,6 @@ public class BtService extends Service implements Constants {
 
         // Start the thread to manage the connection and perform transmissions
         mConnectedThread = new ConnectedThread(socket, socketType);
-        mConnectedThread.start();
 
         // Send the name of the connected device back to the UI Activity
         Message msg = mHandler.obtainMessage(MESSAGE_DEVICE_NAME);
@@ -210,6 +211,9 @@ public class BtService extends Service implements Constants {
         mHandler.sendMessage(msg);
         // Update UI title
         updateStateTitle();
+        //wait for the first data to start the game
+        mConnectedThread.waitForStart();
+        mConnectedThread.start();
     }
 
     /**
@@ -310,8 +314,22 @@ public class BtService extends Service implements Constants {
             mState = STATE_CONNECTED;
         }
 
+        public void waitForStart() {
+            byte[] buffer = new byte[40];            //4Byte * 9 should be enough
+            try {
+                // Read from the InputStream
+                mmInStream.read(buffer);
+            } catch (IOException e) {
+                Log.e(TAG, "disconnected", e);
+                connectionLost();
+            }
+            Message msg = mHandler.obtainMessage(MESSAGE_START_GAME);
+            mHandler.sendMessage(msg);
+        }
+
+
         public void run() {
-            byte[] buffer = new byte[40];			//4Byte * 9 should be enough
+            byte[] buffer = new byte[40];            //4Byte * 9 should be enough
 
             // Keep listening to the InputStream while connected
             while (mState == STATE_CONNECTED) {
@@ -335,6 +353,39 @@ public class BtService extends Service implements Constants {
             }
         }
     }
+
+/*    private void waitForStart(BluetoothSocket socket) {
+//        BluetoothSocket mmSocket;
+//        mmSocket = socket;
+        InputStream mmInStream = null;
+
+        // Get the BluetoothSocket input streams
+        try {
+            mmInStream = socket.getInputStream();
+        } catch (IOException e) {
+            Log.e(TAG, "temp sockets not created", e);
+        }
+
+        byte[] buffer = new byte[40];            //4Byte * 9 should be enough
+        try {
+            // Read from the InputStream
+            mmInStream.read(buffer);
+        } catch (IOException e) {
+            Log.e(TAG, "disconnected", e);
+            connectionLost();
+        }
+//        finally {
+//            try {
+//                mmInStream.close();
+//            } catch (IOException e) {
+//                Log.e(TAG, "close failed", e);
+//            }
+//        }
+        Message msg = mHandler.obtainMessage(MESSAGE_START_GAME);
+        mHandler.sendMessage(msg);
+    }
+    */
+
 
 
     /**
@@ -377,6 +428,7 @@ public class BtService extends Service implements Constants {
     }
 
     private static final int dataSize = 9;      //size of the pose data
+
     public float[] byteToFloat(byte[] bArray) {
         float[] result = new float[dataSize];
 

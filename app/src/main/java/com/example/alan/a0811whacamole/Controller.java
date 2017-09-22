@@ -145,6 +145,10 @@ public class Controller extends AppCompatActivity implements Constants {
             pairedDevicesArrayAdapter.add("No Devices Have Been Paired");
         }
 
+
+        /**
+         * start_game action is now controlled by bluetooth
+
         Button startGameButton = (Button) findViewById(R.id.start_game_activity_button);
         startGameButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -160,6 +164,7 @@ public class Controller extends AppCompatActivity implements Constants {
                 }
             }
         });
+         */
 
         //set initial state as state connected
         setStatus("Not Connected");
@@ -372,6 +377,16 @@ public class Controller extends AppCompatActivity implements Constants {
                                 Toast.LENGTH_SHORT).show();
                     }
                     break;
+
+                case MESSAGE_START_GAME:
+                    if (mBtBinder.getState() == BtService.STATE_CONNECTED) {
+                        //unbind the bluetooth service
+                        Intent intent = new Intent(Controller.this, StartGame.class);
+                        startActivity(intent);
+                    } else {
+                        Toast.makeText(Controller.this,
+                                "Connect a device first.", Toast.LENGTH_SHORT).show();
+                    }
             }
         }
 

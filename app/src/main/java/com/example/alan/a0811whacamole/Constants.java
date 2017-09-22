@@ -37,14 +37,15 @@ public interface Constants {
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_DEVICE_NAME = 2;
     public static final int MESSAGE_TOAST = 3;
+    public static final int MESSAGE_START_GAME = 4;
 
-    public static final int MESSAGE_BALL_ANIMATION = 4;
-    public static final int MESSAGE_NEXT_HOLE = 5;
-    public static final int MESSAGE_TRACKED = 6;
-    public static final int MESSAGE_NOT_TRACKED = 7;
-    public static final int MESSAGE_UPDATE_KNOT = 8;
-    public static final int MESSAGE_ONE_SECOND = 9;
-    public static final int MESSAGE_TIME_UP = 10;
+    public static final int MESSAGE_BALL_ANIMATION = 5;
+    public static final int MESSAGE_NEXT_HOLE = 6;
+    public static final int MESSAGE_TRACKED = 7;
+    public static final int MESSAGE_NOT_TRACKED = 8;
+    public static final int MESSAGE_UPDATE_KNOT = 9;
+    public static final int MESSAGE_ONE_SECOND = 10;
+    public static final int MESSAGE_TIME_UP = 11;
 
     public static final boolean REQUEST_CONNECT_DEVICE_SECURE = true;
     public static final boolean REQUEST_CONNECT_DEVICE_INSECURE = false;
