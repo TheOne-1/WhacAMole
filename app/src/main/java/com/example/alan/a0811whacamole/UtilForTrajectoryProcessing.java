@@ -1,5 +1,7 @@
 package com.example.alan.a0811whacamole;
 
+import static java.lang.Double.NaN;
+
 /**
  * Created by Alan on 2017/9/22.
  */
@@ -16,10 +18,18 @@ public class UtilForTrajectoryProcessing {
     DigitalSmoother digitalSmootherForAccelerationY = new DigitalSmoother();
     DigitalSmoother digitalSmootherForAccelerationZ = new DigitalSmoother();
 
+    public void setLastTransitionData(double[] lastTransitionData) {
+        this.lastTransitionData = lastTransitionData;
+        this.lastTransitionData[0] = this.lastTransitionData[0] - 0.01;
+        this.lastTransitionData[2] = -this.lastTransitionData[2];
+    }
+
     //the translationData should be in the order of timeStamp + translation + quaternion (scale first)
     public double[] getVelocity(double[] transitionData){
         double[] velocity = new double[3];
         transitionData[2] = - transitionData[2];//inverse the direction because image coordinator's Y axis is downward
+
+//        if ((transitionData[0] - lastTransitionData[0]) == 0) return lastVelocityData;
 
         velocity[0] = (transitionData[1] - lastTransitionData[1]) / (transitionData[0] - lastTransitionData[0]);
         velocity[0] = digitalSmootherForVelocityX.digitalSmooth(velocity[0]);
@@ -30,7 +40,8 @@ public class UtilForTrajectoryProcessing {
         velocity[2] = (transitionData[3] - lastTransitionData[3]) / (transitionData[0] - lastTransitionData[0]);
         velocity[2] = digitalSmootherForVelocityZ.digitalSmooth(velocity[2]);
 
-        System.arraycopy(transitionData, 0, lastTransitionData, 0, transitionData.length );
+
+        System.arraycopy(transitionData, 0, lastTransitionData, 0, transitionData.length);
         return velocity;
     }
 
@@ -91,7 +102,7 @@ public class UtilForTrajectoryProcessing {
     double[] a4 = {0.0, 0.0, 0.0}; //acceleration of time t-4  t-4の加速度
     double[] a5 = { 0.0, 0.0, 0.0}; // acceleration of time t-5 t-5の加速度
     // Judge if the device is moving or not 端末が静止しているかどうか判定
-    private boolean isDeviceStop(double a, int axis) {
+    private boolean isAxisStop(double a, int axis) {
         /// Substitution of acceleration 加速度の代入
         a5[axis] = a4[axis];
         a4[axis] = a3[axis];
@@ -116,4 +127,19 @@ public class UtilForTrajectoryProcessing {
         }
     }
 
+    public boolean isDeviceStop(double[] accData) {
+        boolean isXStop = isAxisStop(accData[0], 0);
+        boolean isYStop = isAxisStop(accData[1], 1);
+        boolean isZStop = isAxisStop(accData[2], 2);
+        return isXStop && isYStop && isZStop;
+    }
+
 }
+
+
+
+
+
+
+
+

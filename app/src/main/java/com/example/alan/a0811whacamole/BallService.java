@@ -130,7 +130,6 @@ public class BallService extends Service implements Constants {
                 lastHole = nextHoleId;
                 currentRound++;
             }
-            int i = 0;
         }
     }
 

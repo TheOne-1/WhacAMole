@@ -105,7 +105,6 @@ public class TrackService extends Service implements Constants {
 //        public TrackingThread() {
 //            currentRound = 0;
 //        }
-
         @Override
         public void run() {
 
@@ -127,15 +126,7 @@ public class TrackService extends Service implements Constants {
                     long startTime = System.currentTimeMillis();
                     int matchedTimes = 0;       //count the time of match to avoid noise
                     boolean tracked = false;
-                    /*
-                    * 以下循环可以用简单的判断代替，如果在已经在其他地方滤波
-                    * while (System.currentTimeMillis() - startTime < 1000 * waitDuration) {
-                    *    if (positionMatched())
-                    *       return true;
-                    *    else
-                    *       return false;
-                    * }
-                    * */
+
                     while ((System.currentTimeMillis() - startTime < 1000 * waitDuration)
                             && mState == StartGame.STATE_PLAYING) {
                         if (positionMatched()) {
@@ -151,7 +142,7 @@ public class TrackService extends Service implements Constants {
                         //sleep to avoid noise; the duration should be determined by
                         //refresh rate of the Bluetooth transmission
                         try {
-                            sleep(20);      //get position data every 20 ms
+                            sleep(POS_DATA_INQUIRY_INTERVAL);      //get position data every 20 ms
                             updateKnot();
                         } catch (InterruptedException e) {
                             e.printStackTrace();

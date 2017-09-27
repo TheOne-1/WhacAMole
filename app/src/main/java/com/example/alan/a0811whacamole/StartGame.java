@@ -28,6 +28,7 @@ import java.io.IOException;
 public class StartGame extends AppCompatActivity implements Constants {
     private final String TAG = "TAG";
 
+    //some states belongs to start game activity
     public static final int STATE_INITIALIZATION = 1;
     public static final int STATE_RESTING = 2;
     public static final int STATE_PLAYING = 3;
@@ -179,6 +180,7 @@ public class StartGame extends AppCompatActivity implements Constants {
         super.onResume();
 
         //bind the ball service and StartGame class
+        //all the service are started by bindService so they are finished after unbind
         Intent ballBindIntent = new Intent(StartGame.this, BallService.class);
         bindService(ballBindIntent, ballServiceConnection, BIND_AUTO_CREATE);
 
@@ -236,6 +238,15 @@ public class StartGame extends AppCompatActivity implements Constants {
             ballImage.setY(holeY0);
         }
         mState = STATE_RESTING;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unbindService(btServiceConnection);
+        unbindService(ballServiceConnection);
+        unbindService(timingServiceConnection);
+        unbindService(trackServiceConnection);
     }
 
 

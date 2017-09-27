@@ -40,6 +40,15 @@
         <service
             android:name=".TimingService"
             android:enabled="true"
+            android:exported="true" />
+
+        <activity
+            android:name=".CalibrationActivity"
+            android:screenOrientation="landscape" />
+
+        <service
+            android:name=".CaliService"
+            android:enabled="true"
             android:exported="true"></service>
     </application>
 

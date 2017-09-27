@@ -46,7 +46,7 @@ public class BtService extends Service implements Constants {
     private ConnectedThread mConnectedThread;
     private int mState;
     private int mNewState;
-    float[] posData = new float[10];
+    float[] posData = new float[9];
 
     public BluetoothBinder mBtBinder = new BluetoothBinder();
 
@@ -329,18 +329,23 @@ public class BtService extends Service implements Constants {
 
 
         public void run() {
-            byte[] buffer = new byte[40];            //4Byte * 9 should be enough
-
+            byte[] buffer = new byte[40];       //4Byte * 9 should be enough
+            int bytes;      //number of the received data
             // Keep listening to the InputStream while connected
             while (mState == STATE_CONNECTED) {
-                try {
-                    // Read from the InputStream
-                    mmInStream.read(buffer);
-                    posData = byteToFloat(buffer);
-                } catch (IOException e) {
-                    Log.e(TAG, "disconnected", e);
-                    connectionLost();
-                    break;
+                synchronized (BtService.this) {
+                    try {
+                        // Read from the InputStream
+                        bytes = mmInStream.read(buffer);
+                        //only update the posData when all the data is received
+                        if (bytes == 36)
+                            posData = byteToFloat(buffer);
+//                        Log.d("TAG2", "bytes: " + bytes + "\t" + posData[0] + "\t" + posData[1] + "\t" + posData[2]);
+                    } catch (IOException e) {
+                        Log.e(TAG, "disconnected", e);
+                        connectionLost();
+                        break;
+                    }
                 }
             }
         }
@@ -353,39 +358,6 @@ public class BtService extends Service implements Constants {
             }
         }
     }
-
-/*    private void waitForStart(BluetoothSocket socket) {
-//        BluetoothSocket mmSocket;
-//        mmSocket = socket;
-        InputStream mmInStream = null;
-
-        // Get the BluetoothSocket input streams
-        try {
-            mmInStream = socket.getInputStream();
-        } catch (IOException e) {
-            Log.e(TAG, "temp sockets not created", e);
-        }
-
-        byte[] buffer = new byte[40];            //4Byte * 9 should be enough
-        try {
-            // Read from the InputStream
-            mmInStream.read(buffer);
-        } catch (IOException e) {
-            Log.e(TAG, "disconnected", e);
-            connectionLost();
-        }
-//        finally {
-//            try {
-//                mmInStream.close();
-//            } catch (IOException e) {
-//                Log.e(TAG, "close failed", e);
-//            }
-//        }
-        Message msg = mHandler.obtainMessage(MESSAGE_START_GAME);
-        mHandler.sendMessage(msg);
-    }
-    */
-
 
 
     /**

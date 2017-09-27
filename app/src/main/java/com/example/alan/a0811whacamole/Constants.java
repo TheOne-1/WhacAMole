@@ -15,6 +15,8 @@ public interface Constants {
     //minimum match distance on the screen在这里设置最小匹配距离
     public final int MIN_MATCH_DIS = 20;
 
+    //interval between two position data inquiry查询位资数据间隔(ms)
+    public final int POS_DATA_INQUIRY_INTERVAL = 20;
     //the difficult of the game is controlled by the duration
     //of movement & waiting
     public final int EASY_MOVE_DURATION = 4;
