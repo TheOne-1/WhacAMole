@@ -10,7 +10,6 @@ import android.os.Message;
 import android.util.Log;
 
 public class CaliService extends Service implements Constants{
-    public final int MESSAGE_STATE_CHANGE = 0;
 
     private int mState;
     private CaliBinder mCaliBinder = new CaliBinder();

@@ -75,11 +75,6 @@ public class BtService extends Service implements Constants {
         }
 
         public float[] getPosData() {
-//            Random random = new Random();
-//            posData[1] = 1000 * random.nextFloat() - 300;
-//            posData[2] = 1000 * random.nextFloat() - 300;
-//            posData[1] = 4000;
-//            posData[2] = 4000;
             return posData;
         }
 
@@ -202,7 +197,7 @@ public class BtService extends Service implements Constants {
 
         // Start the thread to manage the connection and perform transmissions
         mConnectedThread = new ConnectedThread(socket, socketType);
-
+        mConnectedThread.start();
         // Send the name of the connected device back to the UI Activity
         Message msg = mHandler.obtainMessage(MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
@@ -212,8 +207,7 @@ public class BtService extends Service implements Constants {
         // Update UI title
         updateStateTitle();
         //wait for the first data to start the game
-        mConnectedThread.waitForStart();
-        mConnectedThread.start();
+//        mConnectedThread.waitForStart();
     }
 
     /**
@@ -314,19 +308,6 @@ public class BtService extends Service implements Constants {
             mState = STATE_CONNECTED;
         }
 
-        public void waitForStart() {
-            byte[] buffer = new byte[40];            //4Byte * 9 should be enough
-            try {
-                // Read from the InputStream
-                mmInStream.read(buffer);
-            } catch (IOException e) {
-                Log.e(TAG, "disconnected", e);
-                connectionLost();
-            }
-            Message msg = mHandler.obtainMessage(MESSAGE_START_GAME);
-            mHandler.sendMessage(msg);
-        }
-
 
         public void run() {
             byte[] buffer = new byte[40];       //4Byte * 9 should be enough
@@ -359,7 +340,6 @@ public class BtService extends Service implements Constants {
         }
     }
 
-
     /**
      * Indicate that the connection attempt failed and notify the UI Activity.
      */
@@ -385,18 +365,14 @@ public class BtService extends Service implements Constants {
      */
     protected void connectionLost() {
         // Send a failure message back to the Activity
-        Message msg = mHandler.obtainMessage(MESSAGE_TOAST);
-        Bundle bundle = new Bundle();
-        bundle.putString(TOAST, "Device connection was lost");
-        msg.setData(bundle);
+        Message msg = mHandler.obtainMessage(MESSAGE_CONNECTION_LOST);
         mHandler.sendMessage(msg);
-
         mState = STATE_NONE;
         // Update UI title
         updateStateTitle();
 
         // Start the service over to restart listening mode
-        mBtBinder.start();
+        this.start();
     }
 
     private static final int dataSize = 9;      //size of the pose data

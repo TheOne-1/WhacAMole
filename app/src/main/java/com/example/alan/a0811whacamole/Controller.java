@@ -109,6 +109,20 @@ public class Controller extends AppCompatActivity implements Constants {
             }
         });
 
+        Button calibrationButton = (Button) findViewById(R.id.start_calibration_button);
+        calibrationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mBtBinder.getState() == BtService.STATE_CONNECTED) {
+                    Intent intent = new Intent(Controller.this, CalibrationActivity.class);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(Controller.this, "Connect a device first",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
         //Initialize array adapters. One for already paired devices
         //and one for newly discovered devices
         ArrayAdapter<String> pairedDevicesArrayAdapter =
@@ -368,6 +382,14 @@ public class Controller extends AppCompatActivity implements Constants {
                         Toast.makeText(Controller.this,
                                 "Connect a device first.", Toast.LENGTH_SHORT).show();
                     }
+                    break;
+                case MESSAGE_CONNECTION_LOST:
+                    if (null != Controller.this) {
+                        Toast.makeText(Controller.this, "Device connection was lost",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    mConnectedDeviceName = null;
+                    break;
             }
         }
 

@@ -36,6 +36,7 @@ public interface Constants {
     public final int HARD_ROUND = 3;
 
     // Message types sent from the BluetoothChatService Handler
+    public static final int MESSAGE_CONNECTION_LOST = 0;
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_DEVICE_NAME = 2;
     public static final int MESSAGE_TOAST = 3;
