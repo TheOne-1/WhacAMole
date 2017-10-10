@@ -12,17 +12,16 @@ import static java.lang.Math.abs;
 
 public class TrackService extends Service implements Constants {
 
-    //coordinates of four holes
-    private int holeX0 = 0;
-    private int holeX1 = 0;
-    private int holeY0 = 0;
-    private int holeY1 = 0;
-
     int waitDuration;
     int currentRound;
 
     private int maxMobileX;
     private int maxMobileY;
+    private float scaleFactor;
+    private float xOffset;
+    private float yOffset;
+    private int windowWidth;
+    private int windowHeight;
 
     private TrackBinder mTrackBinder = new TrackBinder();
     private Handler mHandler;
@@ -46,17 +45,16 @@ public class TrackService extends Service implements Constants {
     }
 
 
-
     public class TrackBinder extends Binder {
         //to set the handler for this service
-        public void setParams(Handler handler, BtService.BluetoothBinder mBtBinder,
-                              int[] positions) {
+        public void setParams(Handler handler, BtService.BluetoothBinder mBtBinder
+                , float scaleFactor, float xOffset, float yOffset, int windowWidth, int windowHeight) {
             TrackService.this.mHandler = handler;
             TrackService.this.mBtBinder = mBtBinder;
-            holeX0 = positions[0];
-            holeX1 = positions[1];
-            holeY0 = positions[2];
-            holeY1 = positions[3];
+            TrackService.this.scaleFactor = scaleFactor;
+            TrackService.this.xOffset = xOffset;
+            TrackService.this.yOffset = yOffset;
+            TrackService.this.windowWidth = windowWidth;
         }
 
         public void startTrackingThread() {
@@ -102,17 +100,15 @@ public class TrackService extends Service implements Constants {
 
     private class TrackingThread extends Thread {
 
-//        public TrackingThread() {
+        //        public TrackingThread() {
 //            currentRound = 0;
 //        }
         @Override
         public void run() {
-
             //keep running when this service is alive
             while (true) {
                 //update the position of knot
                 updateKnot();
-
                 if (isCatchable) {
                     //set the time of one round
                     if (currentRound >= EASY_ROUND) {
@@ -122,7 +118,6 @@ public class TrackService extends Service implements Constants {
                             waitDuration = HARD_WAIT_DURATION;
                         }
                     }
-
                     long startTime = System.currentTimeMillis();
                     int matchedTimes = 0;       //count the time of match to avoid noise
                     boolean tracked = false;
@@ -161,7 +156,7 @@ public class TrackService extends Service implements Constants {
                 } else {
                     //sleep to save resource
                     try {
-                        sleep(20);
+                        sleep(POS_DATA_INQUIRY_INTERVAL);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -177,8 +172,8 @@ public class TrackService extends Service implements Constants {
         float[] mobilePos = mBtBinder.getPosData();
 //        //mobileX and mobileY represents the transferred
 //        //coordinates of mobile on the tablet
-        mobileX = (int) (mobilePos[1] * SCALE);
-        mobileY = (int) (mobilePos[2] * SCALE);
+        mobileX = (int) ((mobilePos[1] - xOffset) * scaleFactor) + maxMobileX / 2;
+        mobileY = (int) ((mobilePos[2] - yOffset) * scaleFactor) + maxMobileY / 2;
 
         //to make sure the coordinates are within the range
         if (mobileX < 0)
@@ -191,7 +186,7 @@ public class TrackService extends Service implements Constants {
             mobileY = maxMobileY;
         Message msg = mHandler.obtainMessage(MESSAGE_UPDATE_KNOT);
         Bundle bundle = new Bundle();
-        bundle.putIntArray("mobile_pos", new int[] {mobileX, mobileY});
+        bundle.putIntArray("mobile_pos", new int[]{mobileX, mobileY});
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 
@@ -209,7 +204,6 @@ public class TrackService extends Service implements Constants {
         else
             return false;
     }
-
 
 
 }

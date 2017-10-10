@@ -22,14 +22,17 @@ public class CalibrationActivity extends AppCompatActivity {
     public static final int STATE_FINISHED = 2;     //calibrated, waiting for confirmation
     public static final int MESSAGE_MOVED = 0;
     public static final int MESSAGE_STOPPED = 1;
+    public static final int MESSAGE_UPDATE_UI = 2;
 
     private BtService.BluetoothBinder mBtBinder;
     private CaliService.CaliBinder mCaliBinder;
 
     private float scaleFactor;
     private float x0;
+    private float y0;
     private float x1;
-    private float windowWidth;
+    private int windowWidth;
+    private int windowLength;
 
     private TextView coordinatesText;
     private TextView stateText;
@@ -64,7 +67,11 @@ public class CalibrationActivity extends AppCompatActivity {
                 if (mState != STATE_FINISHED)
                     return;
                 Intent intent = new Intent(CalibrationActivity.this, StartGame.class);
-                intent.putExtra("scaleFactor", scaleFactor);
+                intent.putExtra("scale_factor", scaleFactor);
+                intent.putExtra("x0", x0);
+                intent.putExtra("y0", y0);
+                intent.putExtra("windowWidth", windowWidth);
+                intent.putExtra("windowLength", windowLength);
                 startActivity(intent);
             }
         });
@@ -83,6 +90,7 @@ public class CalibrationActivity extends AppCompatActivity {
         super.onResume();
         WindowManager wm = this.getWindowManager();
         windowWidth = wm.getDefaultDisplay().getWidth();
+        windowLength = wm.getDefaultDisplay().getHeight();
     }
 
     @Override
@@ -165,14 +173,19 @@ public class CalibrationActivity extends AppCompatActivity {
             switch (msg.what) {
                 case MESSAGE_MOVED:
                     x0 = msg.getData().getFloat("x0");
+                    y0 = msg.getData().getFloat("y0");
                     mState = STATE_MOVING;
                     updateUI();
                     break;
                 case MESSAGE_STOPPED:
                     x1 = msg.getData().getFloat("x1");
-                    scaleFactor = windowWidth / (x0 - x1);
+                    scaleFactor = windowWidth / (2 * (x0 - x1));
+                    scaleFactor = Math.abs(scaleFactor);
                     Log.d("FACTOR", "" + scaleFactor);
                     mState = STATE_FINISHED;
+                    updateUI();
+                    break;
+                case MESSAGE_UPDATE_UI:
                     updateUI();
                     break;
             }

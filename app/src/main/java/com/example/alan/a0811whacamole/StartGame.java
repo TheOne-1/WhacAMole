@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.media.MediaPlayer;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
@@ -44,7 +43,6 @@ public class StartGame extends AppCompatActivity implements Constants {
     private int holeY1 = 0;
     int[] positions;
 
-
     private ImageView ballImage;
 
     private BallService.BallMovementBinder mBallBinder;
@@ -56,11 +54,14 @@ public class StartGame extends AppCompatActivity implements Constants {
     private int restSecond;
     private ImageView knotImage;
 
-    private double screenDensity;
+    private float scaleFactor;
+    private float x0;
+    private float y0;
 
     private int maxMobileX;
     private int maxMobileY;
-
+    private int windowWidth;
+    private int windowHeight;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,9 +70,12 @@ public class StartGame extends AppCompatActivity implements Constants {
         ballImage = (ImageView) findViewById(R.id.ball_image);
         knotImage = (ImageView) findViewById(R.id.knot_image);
 
-
-        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        screenDensity = displayMetrics.density;
+        Intent intent = getIntent();
+        scaleFactor = intent.getFloatExtra("scale_factor", 1f);     //1f is the default value
+        x0 = intent.getFloatExtra("x0", 0f);        //start position of the game (center)
+        y0 = intent.getFloatExtra("y0", 0f);
+        windowWidth = intent.getIntExtra("windowWidth", 1280);
+        windowHeight = intent.getIntExtra("windowHeight", 720);
 
         Button startButton = (Button) findViewById(R.id.start_game_button);
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -160,7 +164,7 @@ public class StartGame extends AppCompatActivity implements Constants {
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             mTrackBinder = (TrackService.TrackBinder) iBinder;
             if (positions != null) {
-                mTrackBinder.setParams(mHandler, mBtBinder, positions);
+                mTrackBinder.setParams(mHandler, mBtBinder, scaleFactor, x0, y0, windowWidth, windowHeight);
                 mTrackBinder.setMax(maxMobileX, maxMobileY);
             }
             /*start tracking thread at the beginning;
@@ -231,7 +235,7 @@ public class StartGame extends AppCompatActivity implements Constants {
             if (mBallBinder != null)
                 mBallBinder.setParams(mHandler, positions);
             if (mTrackBinder != null) {
-                mTrackBinder.setParams(mHandler, mBtBinder, positions);
+                mTrackBinder.setParams(mHandler, mBtBinder, scaleFactor, x0, y0, windowWidth, windowHeight);
                 mTrackBinder.setMax(maxMobileX, maxMobileY);
             }
             ballImage.setX(holeX0);

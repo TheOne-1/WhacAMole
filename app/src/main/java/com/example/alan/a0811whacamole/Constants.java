@@ -8,15 +8,16 @@ public interface Constants {
 
     //duration per game, given in seconds 在这里设置游戏时间
     public final int GAME_DURATION = 60;
-    //define the scale of distance between real distance
-    // and pixel, given in pixel/mm, not dp 在这里设置尺度
-    public final float SCALE = 1;
+
+//    //define the scale of distance between real distance
+//    // and pixel, given in pixel/mm, not dp 在这里设置尺度
+//    public final float SCALE = 1;
 
     //minimum match distance on the screen在这里设置最小匹配距离
     public final int MIN_MATCH_DIS = 20;
 
     //interval between two position data inquiry查询位资数据间隔(ms)
-    public final int POS_DATA_INQUIRY_INTERVAL = 20;
+    public final int POS_DATA_INQUIRY_INTERVAL = 50;
     //the difficult of the game is controlled by the duration
     //of movement & waiting
     public final int EASY_MOVE_DURATION = 4;

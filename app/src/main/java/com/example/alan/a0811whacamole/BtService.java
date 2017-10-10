@@ -15,7 +15,6 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -46,7 +45,8 @@ public class BtService extends Service implements Constants {
     private ConnectedThread mConnectedThread;
     private int mState;
     private int mNewState;
-    float[] posData = new float[9];
+    private static final int DATA_SIZE = 10;      //size of the pose data
+    float[] posData = new float[DATA_SIZE];
 
     public BluetoothBinder mBtBinder = new BluetoothBinder();
 
@@ -77,6 +77,11 @@ public class BtService extends Service implements Constants {
         public float[] getPosData() {
             return posData;
         }
+
+/*        //get the current Acceleration  data (before filtering)
+        public float getInstantAcc() {
+            return posData[9];
+        }*/
 
         public int getState() {
             return mState;
@@ -310,7 +315,7 @@ public class BtService extends Service implements Constants {
 
 
         public void run() {
-            byte[] buffer = new byte[40];       //4Byte * 9 should be enough
+            byte[] buffer = new byte[DATA_SIZE * 4];       //4Byte * DATA_SIZE should be enough
             int bytes;      //number of the received data
             // Keep listening to the InputStream while connected
             while (mState == STATE_CONNECTED) {
@@ -319,9 +324,10 @@ public class BtService extends Service implements Constants {
                         // Read from the InputStream
                         bytes = mmInStream.read(buffer);
                         //only update the posData when all the data is received
-                        if (bytes == 36)
+                        if (bytes == DATA_SIZE * 4)
                             posData = byteToFloat(buffer);
-//                        Log.d("TAG2", "bytes: " + bytes + "\t" + posData[0] + "\t" + posData[1] + "\t" + posData[2]);
+                        float[] tempData = byteToFloat(buffer);
+                        Log.d("RECEIVED", "bytes: " + bytes + "\t" + tempData[0] + "\t" + tempData[1] + "\t" + tempData[2]);
                     } catch (IOException e) {
                         Log.e(TAG, "disconnected", e);
                         connectionLost();
@@ -375,12 +381,10 @@ public class BtService extends Service implements Constants {
         this.start();
     }
 
-    private static final int dataSize = 9;      //size of the pose data
-
     public float[] byteToFloat(byte[] bArray) {
-        float[] result = new float[dataSize];
+        float[] result = new float[DATA_SIZE];
 
-        for (int i = 0; i < dataSize; i++) {
+        for (int i = 0; i < DATA_SIZE; i++) {
             int fInt = bArray[4 * i + 3] & 0xFF |
                     (bArray[4 * i + 2] & 0xFF) << 8 |
                     (bArray[4 * i + 1] & 0xFF) << 16 |
