@@ -20,8 +20,6 @@ public class TrackService extends Service implements Constants {
     private float scaleFactor;
     private float xOffset;
     private float yOffset;
-    private int windowWidth;
-    private int windowHeight;
 
     private TrackBinder mTrackBinder = new TrackBinder();
     private Handler mHandler;
@@ -48,13 +46,12 @@ public class TrackService extends Service implements Constants {
     public class TrackBinder extends Binder {
         //to set the handler for this service
         public void setParams(Handler handler, BtService.BluetoothBinder mBtBinder
-                , float scaleFactor, float xOffset, float yOffset, int windowWidth, int windowHeight) {
+                , float scaleFactor, float xOffset, float yOffset) {
             TrackService.this.mHandler = handler;
             TrackService.this.mBtBinder = mBtBinder;
             TrackService.this.scaleFactor = scaleFactor;
             TrackService.this.xOffset = xOffset;
             TrackService.this.yOffset = yOffset;
-            TrackService.this.windowWidth = windowWidth;
         }
 
         public void startTrackingThread() {

@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
@@ -44,6 +45,10 @@ public class StartGame extends AppCompatActivity implements Constants {
     int[] positions;
 
     private ImageView ballImage;
+    private TextView totalRoundText;
+    private int totalRound = 0;
+    private TextView hitMissText;
+
 
     private BallService.BallMovementBinder mBallBinder;
     private TrackService.TrackBinder mTrackBinder;
@@ -60,8 +65,6 @@ public class StartGame extends AppCompatActivity implements Constants {
 
     private int maxMobileX;
     private int maxMobileY;
-    private int windowWidth;
-    private int windowHeight;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,13 +72,13 @@ public class StartGame extends AppCompatActivity implements Constants {
         setContentView(R.layout.activity_start_game);
         ballImage = (ImageView) findViewById(R.id.ball_image);
         knotImage = (ImageView) findViewById(R.id.knot_image);
+        totalRoundText = (TextView) findViewById(R.id.total_round_text);
+        hitMissText = (TextView) findViewById(R.id.hit_miss_text);
 
         Intent intent = getIntent();
         scaleFactor = intent.getFloatExtra("scale_factor", 1f);     //1f is the default value
         x0 = intent.getFloatExtra("x0", 0f);        //start position of the game (center)
         y0 = intent.getFloatExtra("y0", 0f);
-        windowWidth = intent.getIntExtra("windowWidth", 1280);
-        windowHeight = intent.getIntExtra("windowHeight", 720);
 
         Button startButton = (Button) findViewById(R.id.start_game_button);
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -164,7 +167,7 @@ public class StartGame extends AppCompatActivity implements Constants {
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             mTrackBinder = (TrackService.TrackBinder) iBinder;
             if (positions != null) {
-                mTrackBinder.setParams(mHandler, mBtBinder, scaleFactor, x0, y0, windowWidth, windowHeight);
+                mTrackBinder.setParams(mHandler, mBtBinder, scaleFactor, x0, y0);
                 mTrackBinder.setMax(maxMobileX, maxMobileY);
             }
             /*start tracking thread at the beginning;
@@ -235,7 +238,7 @@ public class StartGame extends AppCompatActivity implements Constants {
             if (mBallBinder != null)
                 mBallBinder.setParams(mHandler, positions);
             if (mTrackBinder != null) {
-                mTrackBinder.setParams(mHandler, mBtBinder, scaleFactor, x0, y0, windowWidth, windowHeight);
+                mTrackBinder.setParams(mHandler, mBtBinder, scaleFactor, x0, y0);
                 mTrackBinder.setMax(maxMobileX, maxMobileY);
             }
             ballImage.setX(holeX0);
@@ -299,8 +302,7 @@ public class StartGame extends AppCompatActivity implements Constants {
                         }
 
                         @Override
-                        public void onAnimationRepeat(Animation animation) {
-                        }
+                        public void onAnimationRepeat(Animation animation) {}
                     });
                     ballImage.startAnimation(animation);
                     break;
@@ -322,8 +324,19 @@ public class StartGame extends AppCompatActivity implements Constants {
                     }
                     TextView scoreText = (TextView) findViewById(R.id.current_score_text);
                     scoreText.setText("" + currentScore);
-                case MESSAGE_NOT_TRACKED:
+                    totalRound++;
+                    totalRoundText.setText("" + totalRound);
                     mBallBinder.notifyTrialThread();
+                    hitMissText.setText("HIT");
+                    hitMissText.setTextColor(Color.GREEN);
+                    break;
+
+                case MESSAGE_NOT_TRACKED:
+                    totalRound++;
+                    totalRoundText.setText("" + totalRound);
+                    mBallBinder.notifyTrialThread();
+                    hitMissText.setText("MISS");
+                    hitMissText.setTextColor(Color.RED);
                     break;
 
                 case MESSAGE_UPDATE_KNOT:
@@ -391,6 +404,8 @@ public class StartGame extends AppCompatActivity implements Constants {
         remainingTimeBar.setProgress(GAME_DURATION);
         TextView scoreText = (TextView) findViewById(R.id.current_score_text);
         scoreText.setText("" + 0);
+        totalRound = 0;
+        totalRoundText.setText("" + totalRound);
         knotImage = (ImageView) findViewById(R.id.knot_image);
     }
 
@@ -402,6 +417,8 @@ public class StartGame extends AppCompatActivity implements Constants {
         remainingTimeBar.setProgress(GAME_DURATION);
         TextView scoreText = (TextView) findViewById(R.id.current_score_text);
         scoreText.setText("" + 0);
+        totalRound = 0;
+        totalRoundText.setText("" + totalRound);
         ballImage.setX(holeX0);
         ballImage.setY(holeY0);
     }

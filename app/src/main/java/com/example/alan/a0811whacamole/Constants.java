@@ -7,14 +7,14 @@ package com.example.alan.a0811whacamole;
 public interface Constants {
 
     //duration per game, given in seconds 在这里设置游戏时间
-    public final int GAME_DURATION = 60;
+    public final int GAME_DURATION = 120;
 
 //    //define the scale of distance between real distance
 //    // and pixel, given in pixel/mm, not dp 在这里设置尺度
 //    public final float SCALE = 1;
 
     //minimum match distance on the screen在这里设置最小匹配距离
-    public final int MIN_MATCH_DIS = 20;
+    public final int MIN_MATCH_DIS = 30;
 
     //interval between two position data inquiry查询位资数据间隔(ms)
     public final int POS_DATA_INQUIRY_INTERVAL = 50;
@@ -33,8 +33,8 @@ public interface Constants {
     //to determine how many easy and hard round will be
     //launched; crazy round will not stop until the end
     //of the trial
-    public final int EASY_ROUND = 3;
-    public final int HARD_ROUND = 3;
+    public final int EASY_ROUND = 5;
+    public final int HARD_ROUND = 5;
 
     // Message types sent from the BluetoothChatService Handler
     public static final int MESSAGE_CONNECTION_LOST = 0;

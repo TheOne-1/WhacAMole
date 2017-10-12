@@ -23,7 +23,6 @@
             android:paddingLeft="10dp" />
 
 
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -32,67 +31,87 @@
             <Button
                 android:id="@+id/start_game_button"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="start"
-                />
+                android:layout_weight="1"
+                android:text="start" />
 
             <Button
                 android:id="@+id/reset_button"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="reset"
-                />
+                android:layout_weight="1"
+                android:text="reset" />
 
         </LinearLayout>
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="10dp"
-                android:text="Remaining Time: "
-                android:textSize="20sp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="2dp"
+            android:text="Remaining Time: "
+            android:textSize="16sp" />
 
-            <TextView
-                android:id="@+id/remaining_time_text"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="0"
-                android:textColor="@color/timeSufficient"
-                android:textSize="100sp" />
+        <TextView
+            android:id="@+id/remaining_time_text"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:text="0"
+            android:textColor="@color/timeSufficient"
+            android:textSize="80sp" />
 
-            <ProgressBar
-                android:id="@+id/remaining_time_bar"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="40dp"
-                />
+        <ProgressBar
+            android:id="@+id/remaining_time_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:layout_marginTop="2dp" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#000" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#000" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="10dp"
-                android:text="Current Score: "
-                android:textSize="20sp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="2dp"
+            android:text="Current Score: "
+            android:textSize="16sp" />
 
-            <TextView
-                android:id="@+id/current_score_text"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginBottom="50dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:textSize="100sp" />
+        <TextView
+            android:id="@+id/current_score_text"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginBottom="10dp"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:text="0"
+            android:textSize="80sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#000" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="2dp"
+            android:text="Total Round: "
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/total_round_text"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginBottom="10dp"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:text="0"
+            android:textSize="80sp" />
 
 
     </LinearLayout>
@@ -107,8 +126,7 @@
         <com.example.alan.a0811whacamole.SquareRelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_centerInParent="true"
-            >
+            android:layout_centerInParent="true">
 
             <ImageView
                 android:id="@+id/hole_0"
@@ -121,43 +139,48 @@
                 android:id="@+id/hole_1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
                 android:layout_margin="40dp"
-                android:src="@drawable/rabbit_hole"
-                android:layout_alignParentRight="true" />
+                android:src="@drawable/rabbit_hole" />
 
             <ImageView
                 android:id="@+id/hole_2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
                 android:layout_margin="40dp"
-                android:src="@drawable/rabbit_hole"
-                android:layout_alignParentBottom="true"/>
+                android:src="@drawable/rabbit_hole" />
 
             <ImageView
                 android:id="@+id/hole_3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_margin="40dp"
-                android:src="@drawable/rabbit_hole"
+                android:layout_alignParentBottom="true"
                 android:layout_alignParentRight="true"
-                android:layout_alignParentBottom="true" />
+                android:layout_margin="40dp"
+                android:src="@drawable/rabbit_hole" />
 
             <ImageView
                 android:id="@+id/ball_image"
                 android:layout_width="80dp"
                 android:layout_height="80dp"
                 android:src="@drawable/ball"
-                android:visibility="invisible"
-                />
+                android:visibility="invisible" />
 
             <ImageView
                 android:id="@+id/knot_image"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/knot"
                 android:layout_alignParentBottom="true"
                 android:layout_alignParentRight="true"
-                />
+                android:src="@drawable/knot" />
+
+            <TextView
+                android:id="@+id/hit_miss_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:textSize="30sp" />
 
         </com.example.alan.a0811whacamole.SquareRelativeLayout>
 
